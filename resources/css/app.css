@@ -1,0 +1,424 @@
+/* resources/css/app.css */
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+/* =========================================================
+   Base UI helpers
+   ========================================================= */
+
+.tooltip .tooltip-inner{
+  border-radius: 10px;
+  padding: .45rem .6rem;
+  font-weight: 600;
+}
+
+.sidebar-section-title{
+  background: transparent;
+  border: 0;
+  padding: .35rem 0;
+  font-weight: 600;
+  opacity: .9;
+  text-align: left;
+}
+.sidebar-section-title:focus{
+  outline: none;
+  box-shadow: none;
+}
+
+.topbar-home{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-decoration:none;
+  color: inherit;
+}
+.topbar-home:hover{
+  color: inherit;
+  opacity: .95;
+}
+.topbar-home:active{
+  transform: translateY(1px);
+}
+
+/* =========================================================
+   Material-ish cards
+   ========================================================= */
+.card.mat-card{
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+
+.mat-header{
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mat-alert{
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.10);
+}
+
+h3.mat-title{
+  font-size: 1.05rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.btn-mat{
+  border-radius: 12px;
+  padding: .5rem .9rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,.10);
+}
+
+/* =========================================================
+   Tokens / Theme (Club Comofra)
+   ========================================================= */
+:root{
+  /* Brand */
+  --brand:        #FF9900;   /* principal */
+  --brand-600:    #E58900;   /* hover/darker */
+  --secondary:    #585858;   /* secundario */
+
+  /* Neutros */
+  --bg:           #F5F6F7;
+  --text:         #2E2E2E;
+  --muted:        rgba(88,88,88,.80);
+
+  --shadow1: rgba(15,23,42,.18);
+  --shadow2: rgba(15,23,42,.12);
+
+  /* Layout */
+  --topbar-h: 64px;
+  --sidebar-w: 300px;
+  --sidebar-w-collapsed: 88px;
+
+  /* Sidebar look */
+  --sidebar-bg: var(--secondary);
+  --sidebar-bg-2: rgba(255,255,255,.12);
+  --sidebar-text: #ffffff;
+  --sidebar-muted: rgba(255,255,255,.80);
+  --sidebar-active: rgba(255,255,255,.20);
+
+  /* Fonts (fallbacks si no están cargadas) */
+  --font-brand: "Gotham Rounded", "Gotham", "Avenir Next Cyr", "Avenir Next", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-main:  "Gotham", "Avenir Next Cyr", "Avenir Next", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-alt:   "Avenir Next Cyr", "Avenir Next", "Gotham", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* =========================================================
+   App shell layout
+   ========================================================= */
+.app-shell{
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-w);
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas:
+    "topbar topbar"
+    "content sidebar";
+}
+
+/* =========================================================
+   Topbar (Alineado al Login: gradiente brand->secondary)
+   ========================================================= */
+.topbar{
+background: linear-gradient(135deg, var(--secondary), var(--brand));
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  grid-area: topbar;
+  height: var(--topbar-h);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+
+/* Links en topbar */
+.topbar .topbar-home,
+.topbar .topbar-home *{
+  color: #F5F6F7 !important;
+}
+
+.topbar-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+/* Logo estilo “login-logo” */
+.company-logo{
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 14px;
+  background: rgba(255,255,255,.95);
+  padding: 2px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.company-logo-fallback{
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(255,255,255,.95);
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.topbar-title .app-name{
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: .02em;
+}
+.topbar-title .company-name{
+  font-size: .86rem;
+  color: rgba(255,255,255,.82);
+  margin-top: 2px;
+}
+
+/* Botones del topbar */
+.topbar .btn.btn-light{
+  background: rgba(255,255,255,.92);
+  border-color: rgba(255,255,255,.65);
+}
+.topbar .btn.btn-light:hover{
+  background: #fff;
+  border-color: rgba(255,255,255,.85);
+}
+
+/* =========================================================
+   Content
+   ========================================================= */
+.app-content{
+  grid-area: content;
+  min-width: 0;
+}
+
+/* =========================================================
+   Right Sidebar Desktop
+   ========================================================= */
+.right-sidebar{
+  grid-area: sidebar;
+  position: sticky;
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  display: flex;
+  align-self: start;
+}
+
+/* =========================================================
+   Sidebar (Alineado al Login: “material”, acento naranja)
+   ========================================================= */
+.sidebar-nav{
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, var(--secondary) 0%, #2b2b2b 100%);
+  color: var(--sidebar-text);
+  display:flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-brand .brand-title{
+  display:flex;
+  align-items:center;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+/* Secciones con divisores suaves */
+.sidebar-section{
+  padding-bottom: .25rem;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+.sidebar-section:last-of-type{
+  border-bottom: 0;
+}
+
+.sidebar-section-title{
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--sidebar-muted);
+  margin-bottom: 10px;
+}
+
+/* Links */
+.sidebar-link{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  color: var(--sidebar-text);
+  text-decoration:none;
+  padding: 10px 10px;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  position: relative;
+  transition: transform .12s ease, background-color .12s ease, box-shadow .12s ease;
+}
+
+.sidebar-link:hover{
+  background: rgba(255,255,255,.12);
+  color: var(--sidebar-text);
+  transform: translateY(-1px);
+}
+
+.sidebar-link.active{
+  background: rgba(255,255,255,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 8px 20px rgba(0,0,0,.18);
+}
+
+/* Barrita naranja para “active” (Material feel) */
+.sidebar-link.active::before{
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 0 2px rgba(255,153,0,.20);
+}
+
+.sidebar-link i{
+  font-size: 1.1rem;
+  width: 28px;
+  display:flex;
+  justify-content:center;
+  opacity: .95;
+}
+
+.sidebar-footer{
+  border-top: 1px solid rgba(255,255,255,.18);
+}
+
+/* User card */
+.sidebar-user{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.10);
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.user-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.85);
+}
+
+.user-name{
+  font-weight: 700;
+  font-size: .95rem;
+  line-height: 1.1;
+}
+
+.user-email{
+  font-size: .82rem;
+  color: var(--sidebar-muted);
+  margin-top: 2px;
+}
+
+/* =========================================================
+   Offcanvas (mobile/tablet sidebar)
+   ========================================================= */
+.sidebar-offcanvas{
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+}
+.sidebar-offcanvas .offcanvas-header{
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+.sidebar-offcanvas .offcanvas-title{
+  color: var(--sidebar-text);
+  font-weight: 800;
+}
+.btn-close-white{
+  filter: invert(1) grayscale(100%);
+  opacity: .9;
+}
+
+/* =========================================================
+   Collapsed sidebar (desktop)
+   ========================================================= */
+.app-shell.sidebar-collapsed{
+  grid-template-columns: 1fr var(--sidebar-w-collapsed);
+}
+
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-section-title,
+.app-shell.sidebar-collapsed #rightSidebar .brand-text,
+.app-shell.sidebar-collapsed #rightSidebar .link-text,
+.app-shell.sidebar-collapsed #rightSidebar .user-info,
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-footer form button span{
+  display:none;
+}
+
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-link{
+  justify-content:center;
+  gap: 0;
+  padding: 12px 8px;
+}
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-link i{
+  font-size: 1.2rem;
+}
+.app-shell.sidebar-collapsed #rightSidebar .sidebar-user{
+  justify-content:center;
+}
+.app-shell.sidebar-collapsed .sidebar-user{
+  justify-content:center;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+@media (max-width: 991.98px){
+  .app-shell{
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--topbar-h) 1fr;
+    grid-template-areas:
+      "topbar"
+      "content";
+  }
+}
+
+/* =========================================================
+   Buttons (brand)
+   ========================================================= */
+.btn.btn-primary.btn-mat{
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.btn.btn-primary.btn-mat:hover{
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+}
+
+/* =========================================================
+   Typography / global
+   ========================================================= */
+body{
+  font-family: var(--font-main);
+  color: var(--text);
+  background: var(--bg);
+}
+h1,h2,h3,.mat-title{
+  font-family: var(--font-brand);
+}
+.small,.text-muted{
+  font-family: var(--font-alt);
+}

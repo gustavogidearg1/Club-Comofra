@@ -280,6 +280,165 @@
     </div>
   </div>
 @endif
+
+
+{{-- =========================
+     OFERTAS
+========================= --}}
+@if($isEmployee || $isAdmin || $isBusiness)
+
+  {{-- DESTACADAS --}}
+@if(isset($ofertasDestacadas) && $ofertasDestacadas->count())
+    <div class="card mat-card mb-4">
+      <div class="mat-header">
+        <h3 class="mat-title mb-0">
+          <i class="bi bi-megaphone me-2"></i>Ofertas destacadas
+        </h3>
+      </div>
+
+      <div class="card-body">
+        <div id="carouselOfertas" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner">
+
+            @foreach($ofertasDestacadas as $i => $oferta)
+              <div class="carousel-item {{ $i == 0 ? 'active' : '' }}">
+
+                <div class="row align-items-center">
+                  <div class="col-md-5">
+                    @php
+                      $img = $oferta->imagenes->first();
+                    @endphp
+
+                    @if($img)
+                      <img src="{{ asset('storage/'.$img->ruta) }}"
+                           class="img-fluid rounded"
+                           style="cursor:pointer"
+                           onclick="verOferta({{ $oferta->id }})">
+                    @endif
+                  </div>
+
+                  <div class="col-md-7">
+                    <h4>{{ $oferta->titulo }}</h4>
+
+                    @if($oferta->precio)
+                      <div class="fw-bold fs-5 text-success">
+                        $ {{ number_format($oferta->precio,2,',','.') }}
+                      </div>
+                    @endif
+
+                    <div class="text-muted small">
+                      {{ $oferta->company->name ?? '' }}
+                    </div>
+
+                    @if($oferta->fecha_hasta)
+                      <div class="small text-danger">
+                        Válido hasta {{ $oferta->fecha_hasta->format('d/m/Y') }}
+                      </div>
+                    @endif
+
+                    <button class="btn btn-primary btn-sm mt-2"
+                            onclick="verOferta({{ $oferta->id }})">
+                      Ver detalle
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            @endforeach
+
+          </div>
+
+          <button class="carousel-control-prev" type="button" data-bs-target="#carouselOfertas" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+          </button>
+
+          <button class="carousel-control-next" type="button" data-bs-target="#carouselOfertas" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  @endif
+
+
+  {{-- LISTADO GENERAL --}}
+  @if(isset($ofertas) && $ofertas->count())
+  <div class="row g-3">
+    @foreach($ofertas as $oferta)
+      <div class="col-md-4">
+
+        <div class="card mat-card h-100">
+          @php $img = $oferta->imagenes->first(); @endphp
+
+          @if($img)
+            <img src="{{ asset('storage/'.$img->ruta) }}"
+                 class="card-img-top"
+                 style="height:180px;object-fit:cover;cursor:pointer"
+                 onclick="verOferta({{ $oferta->id }})">
+          @endif
+
+          <div class="card-body">
+
+            <h6 class="fw-bold">{{ $oferta->titulo }}</h6>
+
+            @if($oferta->destacada)
+              <span class="badge bg-warning text-dark">Destacada</span>
+            @endif
+
+            @if($oferta->precio)
+              <div class="text-success fw-bold">
+                $ {{ number_format($oferta->precio,2,',','.') }}
+              </div>
+            @endif
+
+            <div class="small text-muted">
+              {{ $oferta->company->name ?? '' }}
+            </div>
+
+            <button class="btn btn-outline-primary btn-sm mt-2 w-100"
+                    onclick="verOferta({{ $oferta->id }})">
+              Ver más
+            </button>
+
+          </div>
+        </div>
+
+      </div>
+    @endforeach
+  </div>
+@endif
+@endif
+
+
+<div class="modal fade" id="modalOferta" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 id="modalTitulo"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <img id="modalImagen" class="img-fluid mb-3 rounded">
+
+        <div id="modalDescripcion"></div>
+
+        <div class="mt-2">
+          <strong id="modalPrecio"></strong>
+        </div>
+
+        <div class="small text-muted mt-2" id="modalEmpresa"></div>
+        <div class="small text-danger" id="modalFecha"></div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
     <div class="ms-auto d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
 
       <div class="d-flex flex-wrap gap-1">
@@ -289,4 +448,21 @@
         @if($isEmployee) <span class="badge bg-warning text-dark">Empleado</span> @endif
       </div>
     </div>
+
+    <script>
+function verOferta(id){
+
+    fetch('/ofertas/'+id)
+        .then(r => r.text())
+        .then(html => {
+
+            // alternativa simple: cargar JSON si querés optimizar
+            // por ahora te dejo simple si después lo querés mejorar lo hacemos
+
+            window.location.href = '/ofertas/'+id;
+
+        });
+}
+</script>
+
 @endsection

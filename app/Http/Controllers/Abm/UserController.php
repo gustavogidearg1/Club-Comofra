@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\UserRegisteredMail;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
@@ -46,44 +47,51 @@ class UserController extends Controller
     }
 
     public function index(Request $request)
-    {
-        $q         = $request->string('q')->toString();
-        $companyId = $request->input('company_id');
-        $roleName  = $request->input('role');
+{
+    $q         = $request->string('q')->toString();
+    $companyId = $request->input('company_id');
+    $roleName  = $request->input('role');
 
-        // ✅ Si es admin_empresa (no admin_sitio), forzamos su company
-        if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
-            $companyId = auth()->user()->company_id;
-        }
+    // ✅ NUEVO: activo con default = 1
+    $activo = $request->has('activo') ? $request->input('activo') : '1';
 
-        // ✅ Para el filtro visual: admin_empresa solo ve su empresa
-        $companies = Company::query()
-            ->when($this->isCompanyAdmin() && !$this->isSiteAdmin(), fn($qq) => $qq->whereKey($companyId))
-            ->orderBy('name')
-            ->get();
+    // ✅ NUEVO: cantidad por página
+    $perPage = (int) $request->input('per', 15);
 
-        $roles = Role::query()->orderBy('name')->get();
-
-        $users = User::query()
-            ->with(['roles', 'company'])
-            ->when($q, function ($qq) use ($q) {
-                $qq->where(function ($w) use ($q) {
-                    $w->where('name', 'like', "%{$q}%")
-                      ->orWhere('email', 'like', "%{$q}%")
-                      ->orWhere('cuil', 'like', "%{$q}%");
-                });
-            })
-            // ✅ scope por company (obligatorio para admin_empresa)
-            ->when($companyId, fn($qq) => $qq->where('company_id', $companyId))
-            ->when($roleName, function ($qq) use ($roleName) {
-                $qq->whereHas('roles', fn($r) => $r->where('name', $roleName));
-            })
-            ->orderBy('name')
-            ->paginate(15)
-            ->withQueryString();
-
-        return view('abm.users.index', compact('users', 'q', 'companies', 'roles', 'companyId', 'roleName'));
+    if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
+        $companyId = auth()->user()->company_id;
     }
+
+    $companies = Company::query()
+        ->when($this->isCompanyAdmin() && !$this->isSiteAdmin(), fn($qq) => $qq->whereKey($companyId))
+        ->orderBy('name')
+        ->get();
+
+    $roles = Role::query()->orderBy('name')->get();
+
+    $users = User::query()
+        ->with(['roles', 'company'])
+        ->when($q, function ($qq) use ($q) {
+            $qq->where(function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%")
+                  ->orWhere('email', 'like', "%{$q}%")
+                  ->orWhere('cuil', 'like', "%{$q}%");
+            });
+        })
+        ->when($companyId, fn($qq) => $qq->where('company_id', $companyId))
+        ->when($roleName, function ($qq) use ($roleName) {
+            $qq->whereHas('roles', fn($r) => $r->where('name', $roleName));
+        })
+        // ✅ ESTE ES EL CLAVE
+        ->when($activo !== '', fn($qq) => $qq->where('activo', $activo))
+        ->orderBy('name')
+        ->paginate($perPage)
+        ->withQueryString();
+
+    return view('abm.users.index', compact(
+        'users', 'q', 'companies', 'roles', 'companyId', 'roleName', 'activo', 'perPage'
+    ));
+}
 
     public function create()
     {
@@ -261,12 +269,32 @@ class UserController extends Controller
             'activo'           => array_key_exists('activo', $data) ? (bool)$data['activo'] : (bool)$user->activo,
         ];
 
-        if ($request->hasFile('imagen')) {
-            if ($user->imagen) {
-                Storage::disk('public')->delete($user->imagen);
-            }
-            $updateData['imagen'] = $request->file('imagen')->store('users', 'public');
+if ($request->hasFile('imagen')) {
+
+    if ($user->imagen) {
+        // ✅ Normalizar si viene como URL completa
+        $path = $user->imagen;
+
+        if (str_starts_with($path, 'http')) {
+            $path = str_replace(
+                url('/storage/') . '/',
+                '',
+                $path
+            );
         }
+
+        Storage::disk('public')->delete($path);
+    }
+
+    // ✅ Guardar SIEMPRE como ruta relativa
+        $updateData['imagen'] = $request->file('imagen')->store('users', 'public');
+
+    // 🔥 CLAVE: sincronizar automáticamente
+    copy(
+        storage_path('app/public/' . $updateData['imagen']),
+        public_path('storage/' . $updateData['imagen'])
+    );
+}
 
         if (!empty($data['password'])) {
             $updateData['password'] = Hash::make($data['password']);
@@ -277,4 +305,86 @@ class UserController extends Controller
 
         return redirect()->route('abm.users.show', $user)->with('success', 'User updated successfully.');
     }
+
+    public function getImagenUrlAttribute()
+{
+    if (!$this->imagen) return null;
+
+    if (str_starts_with($this->imagen, 'http')) {
+        return $this->imagen;
+    }
+
+    return Storage::url($this->imagen);
+}
+
+public function export(Request $request): StreamedResponse
+{
+    $q         = $request->string('q')->toString();
+    $companyId = $request->input('company_id');
+    $roleName  = $request->input('role');
+    $activo    = $request->input('activo', '1');
+
+    if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
+        $companyId = auth()->user()->company_id;
+    }
+
+    $users = User::query()
+        ->with(['roles', 'company'])
+        ->when($q, function ($qq) use ($q) {
+            $qq->where(function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%")
+                  ->orWhere('email', 'like', "%{$q}%")
+                  ->orWhere('cuil', 'like', "%{$q}%");
+            });
+        })
+        ->when($companyId, fn($qq) => $qq->where('company_id', $companyId))
+        ->when($roleName, function ($qq) use ($roleName) {
+            $qq->whereHas('roles', fn($r) => $r->where('name', $roleName));
+        })
+        ->when($activo !== '', fn($qq) => $qq->where('activo', $activo))
+        ->orderBy('name');
+
+    $filename = 'users_export_' . now()->format('Ymd_His') . '.csv';
+
+    return response()->streamDownload(function () use ($users) {
+
+        $out = fopen('php://output', 'w');
+
+        // BOM para Excel
+        fwrite($out, "\xEF\xBB\xBF");
+
+// encabezados
+fputcsv($out, [
+    'Nombre',
+    'Email',
+    'Telefono',
+    'Empresa',
+    'CUIL',
+    'Roles',
+    'Activo'
+], ';');
+
+        $users->chunk(500, function ($rows) use ($out) {
+            foreach ($rows as $user) {
+
+// datos
+fputcsv($out, [
+    $user->name,
+    $user->email,
+    $user->telefono,
+    $user->company?->name,
+    $user->cuil,
+    $user->roles->pluck('name')->join(', '),
+    $user->activo ? 'Si' : 'No',
+], ';');
+            }
+        });
+
+        fclose($out);
+
+    }, $filename, [
+        'Content-Type' => 'text/csv; charset=UTF-8'
+    ]);
+}
+
 }

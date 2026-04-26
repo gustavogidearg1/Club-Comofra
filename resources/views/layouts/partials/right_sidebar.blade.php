@@ -121,28 +121,30 @@
   @endif
 
   {{-- ====== NEGOCIO ====== --}}
-  @if($showBusiness)
-    <div class="sidebar-section px-3 pt-3">
-      <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#{{ $collapseId('business') }}"
-              aria-expanded="{{ $openBusiness ? 'true' : 'false' }}"
-              aria-controls="{{ $collapseId('business') }}">
-        <span>Negocio</span>
-        <i class="bi bi-chevron-down small opacity-75"></i>
-      </button>
+@if($showBusiness)
+  <div class="sidebar-section px-3 pt-3">
+    <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#{{ $collapseId('business') }}"
+            aria-expanded="{{ $openBusiness ? 'true' : 'false' }}"
+            aria-controls="{{ $collapseId('business') }}">
+      <span>Negocio</span>
+      <i class="bi bi-chevron-down small opacity-75"></i>
+    </button>
 
-      <div class="collapse {{ $openBusiness ? 'show' : '' }}" id="{{ $collapseId('business') }}">
-        <a class="sidebar-link {{ ($starts('redeems.') && !$starts('redeems.manual.') && !$starts('redeems.rendiciones_empresa.')) ? 'active' : '' }}"
-           href="{{ route('redeems.create') }}"
-           @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Consumir puntos" @endif>
-          <i class="bi bi-qr-code-scan"></i>
-          <span class="link-text">Consumir puntos</span>
-        </a>
-      </div>
+    <div class="collapse {{ $openBusiness ? 'show' : '' }}" id="{{ $collapseId('business') }}">
+      <a class="sidebar-link {{ ($starts('redeems.') && !$starts('redeems.manual.') && !$starts('redeems.rendiciones_empresa.')) ? 'active' : '' }}"
+         href="{{ route('redeems.create') }}"
+         @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Consumir puntos" @endif>
+        <i class="bi bi-qr-code-scan"></i>
+        <span class="link-text">Consumir puntos</span>
+      </a>
+
+
     </div>
-  @endif
+  </div>
+@endif
 
   {{-- ====== RENDICIONES (Negocio + Admin empresa + Admin sitio) ====== --}}
   @if($canSeeSettlements)
@@ -169,6 +171,14 @@
           <i class="bi bi-journal-check"></i>
           <span class="link-text">Rendiciones realizadas</span>
         </a>
+
+              <a class="sidebar-link {{ $starts('ofertas.') ? 'active' : '' }}"
+         href="{{ route('ofertas.index') }}"
+         @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Ofertas" @endif>
+        <i class="bi bi-megaphone"></i>
+        <span class="link-text">Ofertas</span>
+      </a>
+
       </div>
     </div>
   @endif

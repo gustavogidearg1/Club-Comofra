@@ -94,16 +94,7 @@
                   <i class="bi bi-pencil"></i>
                 </a>
 
-                <form method="POST"
-                      action="{{ route('abm.point-references.destroy', $r) }}"
-                      class="d-inline"
-                      onsubmit="return confirm('¿Eliminar referencia?');">
-                  @csrf
-                  @method('DELETE')
-                  <button class="btn btn-sm btn-outline-danger btn-mat" type="submit">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </form>
+
               </td>
             </tr>
           @empty

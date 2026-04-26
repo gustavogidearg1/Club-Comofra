@@ -67,4 +67,12 @@ public function redemptionsAsBusiness()
 }
 
 
+
+
+public function ofertas()
+{
+    return $this->hasMany(\App\Models\Oferta::class);
+}
+
+
 }

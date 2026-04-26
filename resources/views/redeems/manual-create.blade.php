@@ -10,6 +10,15 @@
     border-radius:999px; padding:.35rem .75rem;
     background:#EAF2FF; color:#1e40af; font-weight:700;
   }
+
+  input.is-invalid {
+  border-width: 2px;
+}
+
+.invalid-feedback {
+  font-size: 0.9rem;
+}
+
 </style>
 
 <div class="container py-3">
@@ -61,7 +70,7 @@
                  min="1"
                  name="points"
                  class="form-control @error('points') is-invalid @enderror"
-                 value="{{ old('points', 1) }}"
+                    value="{{ old('points') }}"
                  required>
           @error('points') <div class="invalid-feedback">{{ $message }}</div> @enderror
 
@@ -118,27 +127,94 @@
 @push('scripts')
 <script>
 (function(){
-  const form      = document.getElementById('manualForm');
-  const submitBtn = document.getElementById('submitBtn');
-  const modalEl   = document.getElementById('modalSubmittingRedeem');
+  const form        = document.getElementById('manualForm');
+  const submitBtn   = document.getElementById('submitBtn');
+  const modalEl     = document.getElementById('modalSubmittingRedeem');
+  const input       = document.getElementById('pointsInput');
+  const saldoEl     = document.getElementById('saldoVal');
 
-  if (!form || !submitBtn || !modalEl) return;
+  if (!form || !submitBtn || !modalEl || !input || !saldoEl) return;
 
   let submitting = false;
 
+  // Obtener saldo (limpiando formato)
+  const saldo = parseInt(saldoEl.innerText.replace(/\D/g, '') || 0);
+
+  /* =========================
+     Helpers UI
+  ========================= */
+
+  function showError(msg) {
+    input.classList.add('is-invalid');
+
+    let feedback = input.parentNode.querySelector('.invalid-feedback-custom');
+    if (!feedback) {
+      feedback = document.createElement('div');
+      feedback.className = 'invalid-feedback invalid-feedback-custom';
+      input.parentNode.appendChild(feedback);
+    }
+
+    feedback.innerText = msg;
+    feedback.style.display = 'block';
+
+    input.focus();
+  }
+
+  function clearError() {
+    input.classList.remove('is-invalid');
+
+    const feedback = input.parentNode.querySelector('.invalid-feedback-custom');
+    if (feedback) feedback.style.display = 'none';
+  }
+
+  /* =========================
+     Eventos input
+  ========================= */
+
+  input.addEventListener('input', clearError);
+
+  input.addEventListener('blur', function() {
+    const value = parseInt(input.value);
+
+    if (!input.value || isNaN(value) || value <= 0) {
+      showError('Debe ser mayor a 0');
+    }
+  });
+
+  /* =========================
+     Submit
+  ========================= */
+
   form.addEventListener('submit', function(ev){
-    // evita doble submit
+
+    // evitar doble submit
     if (submitting) {
       ev.preventDefault();
       return;
     }
 
-    // si el HTML5 form no es válido, que el browser muestre los mensajes
-    if (!form.checkValidity()) {
-      return; // no preventDefault
+    const value = parseInt(input.value);
+
+    // ❌ Validación puntos
+    if (!input.value || isNaN(value) || value <= 0) {
+      ev.preventDefault();
+      showError('Ingresá puntos válidos (mayor a 0)');
+      return;
     }
 
-    // si el botón ya estaba disabled (por saldo insuficiente), no mandamos
+    // ❌ Validación saldo
+    if (value > saldo) {
+      ev.preventDefault();
+      showError('No podés consumir más que tu saldo disponible');
+      return;
+    }
+
+    // HTML5 validation (por si hay otros campos)
+    if (!form.checkValidity()) {
+      return;
+    }
+
+    // botón disabled (extra seguridad)
     if (submitBtn.disabled) {
       ev.preventDefault();
       return;
@@ -149,10 +225,9 @@
     // bloquea UI
     submitBtn.disabled = true;
     submitBtn.classList.add('disabled');
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando…';
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Enviando…';
 
-    // mostrar modal (sin depender de window.bootstrap)
-    // truco: "click" a un botón temporal con data-bs-toggle
+    // mostrar modal
     const tmp = document.createElement('button');
     tmp.type = 'button';
     tmp.setAttribute('data-bs-toggle', 'modal');
@@ -162,17 +237,20 @@
     tmp.click();
     tmp.remove();
 
-    // importante: no hacemos preventDefault -> dejamos que el submit siga normal
-    // (si quisieras asegurar render del modal, podrías hacer preventDefault y luego form.submit() con setTimeout)
+    // no preventDefault → sigue submit normal
   });
 
-  // Si el navegador vuelve atrás (bfcache), re-habilita el botón
+  /* =========================
+     Back navigation fix
+  ========================= */
+
   window.addEventListener('pageshow', function(){
     submitting = false;
     submitBtn.disabled = false;
     submitBtn.classList.remove('disabled');
     submitBtn.innerHTML = 'Confirmar consumo';
   });
+
 })();
 </script>
 @endpush

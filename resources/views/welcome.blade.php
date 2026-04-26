@@ -177,7 +177,7 @@
             <div class="card-footer bg-white border-0 pt-0 pb-4 px-4 px-lg-5">
               <div class="small muted">
                 © {{ date('Y') }} {{ config('app.name','Club Comofra') }} ·
-                <span class="text-nowrap">Hecho con Laravel</span>
+                <span class="text-nowrap">creado idear</span>
               </div>
             </div>
 

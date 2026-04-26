@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 
 use App\Models\User;
 
@@ -9,6 +8,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\PointImportController;
 use App\Http\Controllers\RedemptionController;
+use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\OfertaController;
+use App\Http\Controllers\DashboardController;
 
 // ABM
 use App\Http\Controllers\Abm\CompanyController;
@@ -18,17 +20,7 @@ use App\Http\Controllers\Abm\LocalidadController;
 use App\Http\Controllers\Abm\UserController;
 use App\Http\Controllers\Abm\PointReferenceController;
 
-// Rendiciones
-use App\Http\Controllers\SettlementController;
-
 Route::get('/', fn() => redirect()->route('login'));
-
-/**
- * Dashboard
- */
-Route::get('/dashboard', fn() => view('dashboard'))
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
 
 /**
  * Perfil
@@ -41,14 +33,17 @@ Route::middleware('auth')->group(function () {
 });
 
 /**
- * ============================
- * TODO LO QUE REQUIERE LOGIN
- * ============================
+ * Todo lo que requiere login
  */
 Route::middleware(['auth'])->group(function () {
 
     /**
-     * Debug de rutas (solo dev)
+     * Dashboard
+     */
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    /**
+     * Debug de rutas
      */
     Route::get('/debug/route/{any}', function ($any) {
         $path = ltrim($any, '/');
@@ -68,63 +63,32 @@ Route::middleware(['auth'])->group(function () {
     })->where('any', '.*');
 
     /**
-     * ============================
-     * REDENCIONES (QR) - Negocio / Empleado
-     * ============================
+     * Redenciones
      */
-    Route::get('/redeems/create', [RedemptionController::class, 'create'])
-        ->name('redeems.create');
+    Route::get('/redeems/create', [RedemptionController::class, 'create'])->name('redeems.create');
+    Route::post('/redeems', [RedemptionController::class, 'store'])->name('redeems.store');
+    Route::patch('/redeems/{redemption}/cancel', [RedemptionController::class, 'cancel'])->name('redeems.cancel');
 
-    Route::post('/redeems', [RedemptionController::class, 'store'])
-        ->name('redeems.store');
-
-    Route::patch('/redeems/{redemption}/cancel', [RedemptionController::class, 'cancel'])
-        ->name('redeems.cancel');
-
-    Route::get('/redeems/confirm/{token}', [RedemptionController::class, 'showConfirm'])
-        ->name('redeems.confirm.show');
-
-    Route::post('/redeems/confirm/{token}', [RedemptionController::class, 'confirm'])
-        ->name('redeems.confirm.do');
+    Route::get('/redeems/confirm/{token}', [RedemptionController::class, 'showConfirm'])->name('redeems.confirm.show');
+    Route::post('/redeems/confirm/{token}', [RedemptionController::class, 'confirm'])->name('redeems.confirm.do');
 
     /**
-     * ============================
-     * RENDICIONES A EMPRESA (admin/negocio)
-     * ============================
+     * Rendiciones a empresa
      */
     Route::middleware(['role:admin_sitio|admin_empresa|negocio'])
         ->prefix('redeems/rendiciones-empresa')
         ->name('redeems.rendiciones_empresa.')
         ->group(function () {
-
-            // Index consumos a rendir
-            Route::get('/', [SettlementController::class, 'consumosIndex'])
-                ->name('index');
-
-            // Crear rendición con consumos seleccionados
-            Route::post('/', [SettlementController::class, 'store'])
-                ->name('store');
-
-            // Listado de rendiciones realizadas
-            Route::get('/rendiciones', [SettlementController::class, 'settlementsIndex'])
-                ->name('settlements');
-
-            // Ver rendición
-            Route::get('/{settlement}', [SettlementController::class, 'show'])
-                ->name('show');
-
-            // Marcar como facturada
-            Route::post('/{settlement}/facturar', [SettlementController::class, 'markInvoiced'])
-                ->name('facturar');
-
-            // Revertir a pendiente (anula rendición y devuelve consumos)
-            Route::post('/{settlement}/revertir', [SettlementController::class, 'revertToPending'])
-                ->name('revertir');
+            Route::get('/', [SettlementController::class, 'consumosIndex'])->name('index');
+            Route::post('/', [SettlementController::class, 'store'])->name('store');
+            Route::get('/rendiciones', [SettlementController::class, 'settlementsIndex'])->name('settlements');
+            Route::get('/{settlement}', [SettlementController::class, 'show'])->name('show');
+            Route::post('/{settlement}/facturar', [SettlementController::class, 'markInvoiced'])->name('facturar');
+            Route::post('/{settlement}/revertir', [SettlementController::class, 'revertToPending'])->name('revertir');
         });
 
     /**
-     * Endpoint JSON para completar negocio desde QR
-     * Ej: /abm/businesses/1/json
+     * Endpoint JSON negocio
      */
     Route::get('/abm/businesses/{id}/json', function ($id) {
         $u = User::query()
@@ -139,26 +103,16 @@ Route::middleware(['auth'])->group(function () {
     })->name('abm.businesses.json');
 
     /**
-     * ============================
-     * CONSUMO MANUAL (Empleado -> Negocio)
-     * ============================
+     * Consumo manual
      */
-    Route::get('/redeems/manual', [RedemptionController::class, 'manualIndex'])
-        ->name('redeems.manual.index');
-
-    Route::get('/redeems/manual/{business}', [RedemptionController::class, 'manualCreate'])
-        ->name('redeems.manual.create');
-
-    Route::post('/redeems/manual/{business}', [RedemptionController::class, 'manualStore'])
-        ->name('redeems.manual.store');
+    Route::get('/redeems/manual', [RedemptionController::class, 'manualIndex'])->name('redeems.manual.index');
+    Route::get('/redeems/manual/{business}', [RedemptionController::class, 'manualCreate'])->name('redeems.manual.create');
+    Route::post('/redeems/manual/{business}', [RedemptionController::class, 'manualStore'])->name('redeems.manual.store');
 
     /**
-     * ============================
-     * PUNTOS
-     * ============================
+     * Puntos
      */
     Route::prefix('points')->name('points.')->group(function () {
-
         Route::get('/', [PointsController::class, 'index'])->name('index');
 
         Route::get('/summary', [PointsController::class, 'summary'])
@@ -177,6 +131,14 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('store');
 
+        Route::get('/export', [PointsController::class, 'export'])
+            ->middleware('role:admin_sitio|admin_empresa')
+            ->name('export');
+
+        Route::get('/employee/{employee}', [PointsController::class, 'employeeDetail'])
+            ->middleware('role:admin_sitio|admin_empresa')
+            ->name('employee.detail');
+
         Route::get('/{movement}/edit', [PointsController::class, 'edit'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('edit');
@@ -188,36 +150,19 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{movement}/void', [PointsController::class, 'void'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('void');
-
-        Route::get('/employee/{employee}', [PointsController::class, 'employeeDetail'])
-            ->middleware('role:admin_sitio|admin_empresa')
-            ->name('employee.detail');
-
-        Route::get('/export', [PointsController::class, 'export'])
-            ->middleware('role:admin_sitio|admin_empresa')
-            ->name('export');
     });
 
     /**
-     * ============================
-     * IMPORTACIÓN MASIVA (admins)
-     * ============================
+     * Importación masiva de puntos
      */
     Route::middleware(['role:admin_sitio|admin_empresa'])->group(function () {
-        Route::get('/points/import', [PointImportController::class, 'create'])
-            ->name('points.import.create');
-
-        Route::post('/points/import/preview', [PointImportController::class, 'preview'])
-            ->name('points.import.preview');
-
-        Route::post('/points/import/commit', [PointImportController::class, 'commit'])
-            ->name('points.import.commit');
+        Route::get('/points/import', [PointImportController::class, 'create'])->name('points.import.create');
+        Route::post('/points/import/preview', [PointImportController::class, 'preview'])->name('points.import.preview');
+        Route::post('/points/import/commit', [PointImportController::class, 'commit'])->name('points.import.commit');
     });
 
     /**
-     * ============================
      * ABM
-     * ============================
      */
     Route::middleware(['role:admin_sitio|admin_empresa'])
         ->prefix('abm')
@@ -236,7 +181,12 @@ Route::middleware(['auth'])->group(function () {
                 ->parameters(['localidades' => 'localidad'])
                 ->names('localidades');
 
-            // Users (ABM a mano)
+            /**
+             * Usuarios
+             * IMPORTANTE: export va antes de users/{user}
+             */
+            Route::get('users/export', [UserController::class, 'export'])->name('users.export');
+
             Route::get('users', [UserController::class, 'index'])->name('users.index');
             Route::get('users/create', [UserController::class, 'create'])->name('users.create');
             Route::post('users', [UserController::class, 'store'])->name('users.store');
@@ -247,11 +197,15 @@ Route::middleware(['auth'])->group(function () {
             Route::resource('point-references', PointReferenceController::class)
                 ->names('point-references');
 
-            // SOLO admin_sitio puede administrar empresas
             Route::middleware(['role:admin_sitio'])->group(function () {
                 Route::resource('companies', CompanyController::class);
             });
         });
+
+    /**
+     * Ofertas
+     */
+    Route::resource('ofertas', OfertaController::class);
 });
 
 require __DIR__ . '/auth.php';

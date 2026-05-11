@@ -6,7 +6,6 @@ use App\Models\PointMovement;
 use App\Models\PointRedemption;
 use App\Models\User;
 use App\Notifications\MovimientoPuntosCreado;
-use App\Notifications\RedencionConfirmadaNegocio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -56,13 +55,15 @@ class RedemptionController extends Controller
         // Empleados: si es admin_sitio, podrías listar todos o filtrar por company_id si querés.
         $companyId = $user->company_id;
 
-        $employees = User::query()
-            ->when(!$user->hasRole('admin_sitio') && !empty($companyId),
-                fn($q) => $q->where('company_id', $companyId)
-            )
-            ->whereHas('roles', fn($q) => $q->where('name', 'empleado'))
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'cuil', 'company_id']);
+$employees = User::query()
+    ->when(
+        !$user->hasRole('admin_sitio') && !empty($companyId),
+        fn($q) => $q->where('company_id', $companyId)
+    )
+    ->where('activo', true)
+    ->whereHas('roles', fn($q) => $q->where('name', 'empleado'))
+    ->orderBy('name')
+    ->get(['id', 'name', 'email', 'cuil', 'company_id']);
 
         return view('redeems.create', compact('employees'));
     }
@@ -182,11 +183,21 @@ try {
         $mov->employee->notify(new MovimientoPuntosCreado($mov));
     }
 
-    // 2) Email al negocio (si querés avisarle al mismo negocio que generó el consumo)
-    // Evita duplicar si por alguna razón employee == business (raro, pero por las dudas)
-    if (!empty($mov->business?->email) && (int)$mov->business->id !== (int)$mov->employee_user_id) {
-        $mov->business->notify(new RedencionConfirmadaNegocio($mov));
+try {
+    $mov = $result['movement']->load(['employee','business']);
+
+    // Email al empleado
+    if (!empty($mov->employee?->email)) {
+        $mov->employee->notify(new MovimientoPuntosCreado($mov));
     }
+
+} catch (\Throwable $e) {
+    Log::error('Error enviando notificaciones de consumo (store)', [
+        'movement_id' => $result['movement']->id ?? null,
+        'redemption_id' => $redemption->id ?? null,
+        'error' => $e->getMessage(),
+    ]);
+}
 
 } catch (\Throwable $e) {
     Log::error('Error enviando notificaciones de consumo (store)', [
@@ -371,11 +382,14 @@ try {
 $mov = $result['movement'];
 $mov->load(['employee','business']);
 
-// 1) Negocio
-if (!empty($mov->business?->email)) {
-    $mov->business->notify(new RedencionConfirmadaNegocio($mov));
-}
+// Mail / notificaciones
+$mov = $result['movement'];
+$mov->load(['employee','business']);
 
+// Empleado (el que hizo el consumo)
+if (!empty($mov->employee?->email)) {
+    $mov->employee->notify(new MovimientoPuntosCreado($mov));
+}
 // 2) Empleado (el que hizo el consumo)
 if (!empty($mov->employee?->email)) {
     $mov->employee->notify(new MovimientoPuntosCreado($mov));

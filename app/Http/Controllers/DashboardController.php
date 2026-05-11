@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Oferta;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
 {
     $user = auth()->user();
+    $activeCompany = $user->company;
 
     // OFERTAS (lo que ya tenés)
     $ofertasQuery = Oferta::with(['imagenes', 'company', 'user'])
@@ -53,6 +55,19 @@ $negocios = User::with(['company', 'localidad', 'provincia', 'pais'])
     ->orderBy('name', 'asc')
     ->get();
 
-    return view('dashboard', compact('ofertas', 'ofertasDestacadas', 'negocios'));
+    // 👇 Cumpleaños de hoy
+$cumplesHoy = User::whereNotNull('fecha_nacimiento')
+    ->whereMonth('fecha_nacimiento', Carbon::now()->month)
+    ->whereDay('fecha_nacimiento', Carbon::now()->day)
+    ->where('activo', 1)
+    ->get();
+
+    return view('dashboard', compact(
+    'ofertas',
+    'ofertasDestacadas',
+    'negocios',
+    'cumplesHoy',
+    'activeCompany'
+));
 }
 }

@@ -227,7 +227,7 @@
     $roleLabels = [
         'admin_sitio'    => 'Administrador del sitio',
         'admin_empresa'  => 'Administrador de compañía',
-        'negocio'        => 'Negocio / empleado interno',
+        'negocio'        => 'Comercio / Negocio',
         'empleado'       => 'Empleado',
     ];
 

@@ -156,9 +156,16 @@ class UserController extends Controller
             'telefono' => ['nullable', 'string', 'max:30'],
         ]);
 
-        if ($request->hasFile('imagen')) {
-            $data['imagen'] = $request->file('imagen')->store('users', 'public');
-        }
+if ($request->hasFile('imagen')) {
+
+    $data['imagen'] = $request->file('imagen')->store('users', 'public');
+
+    // copiar a public/storage (igual que en update)
+    copy(
+        storage_path('app/public/' . $data['imagen']),
+        public_path('storage/' . $data['imagen'])
+    );
+}
 
         $user = User::create([
             'name'             => $data['name'],

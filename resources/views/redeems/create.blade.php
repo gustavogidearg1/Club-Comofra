@@ -233,26 +233,42 @@ if (formEl) {
   let submitting = false;
 
   formEl.addEventListener('submit', (e) => {
-    if (submitting) return;
-    submitting = true;
 
-    const modalEl = document.getElementById('loadingModal');
-
-    // 1) si existe bootstrap.Modal -> modal
-    if (modalEl && window.bootstrap?.Modal) {
-      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.show();
+    // Evita doble submit
+    if (submitting) {
       e.preventDefault();
-      requestAnimationFrame(() => setTimeout(() => formEl.submit(), 80));
       return;
     }
 
-    // 2) fallback overlay (sin bootstrap JS)
-    showFallbackOverlay();
-    // acá NO prevenimos submit: dejamos que navegue normal
+    submitting = true;
+
+    // Deshabilitar botón
+    const submitBtn = formEl.querySelector('button[type="submit"]');
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Generando...
+      `;
+    }
+
+    const modalEl = document.getElementById('loadingModal');
+
+    // Mostrar modal
+    if (modalEl && window.bootstrap?.Modal) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    } else {
+      showFallbackOverlay();
+    }
+
+    // IMPORTANTE:
+    // NO usamos preventDefault()
+    // NO usamos form.submit()
+    // dejamos el submit natural
   });
 }
-
 
   // ============================
   // Buscador de empleados (solo si existen elementos)

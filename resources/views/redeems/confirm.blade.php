@@ -2,9 +2,10 @@
 @section('title','Comprobante de consumo')
 
 @section('content')
+
 @php
   $empleado = $redemption->employee->name ?? '—';
-  $puntos   = number_format((int)($redemption->points ?? 0), 0, ',', '.');
+  $puntos   = number_format((float)($redemption->points ?? 0), 2, ',', '.');
   $negocio  = $redemption->business->name ?? '—';
   $fecha    = optional($redemption->confirmed_at)->format('Y-m-d H:i') ?? '—';
   $nota     = $redemption->note ?? '—';

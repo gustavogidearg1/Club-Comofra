@@ -191,7 +191,11 @@ class PointsController extends Controller
         $summaryQ = $employeesQ
             ->leftJoinSub($movQ, 'm', fn($join) => $join->on('users.id', '=', 'm.employee_user_id'))
             ->addSelect([
-                'users.id', 'users.name', 'users.email', 'users.cuil', 'users.company_id',
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.cuil',
+                'users.company_id',
                 DB::raw('COALESCE(m.total_earned,0) as total_earned'),
                 DB::raw('COALESCE(m.total_redeemed,0) as total_redeemed'),
                 DB::raw('COALESCE(m.total_available,0) as total_available'),
@@ -206,8 +210,8 @@ class PointsController extends Controller
         if ($hasVoided) $overallMov->whereNull('voided_at');
         if (!empty($companyId)) $overallMov->where('company_id', $companyId);
 
-        $earned    = (int)(clone $overallMov)->where('type', 'earn')->sum('points');
-        $redeemAbs = (int)abs((clone $overallMov)->where('type', 'redeem')->sum('points'));
+        $earned    = round((float)(clone $overallMov)->where('type', 'earn')->sum('points'), 2);
+        $redeemAbs = round(abs((float)(clone $overallMov)->where('type', 'redeem')->sum('points')), 2);
 
         $overallTotals = [
             'total_employees'        => (clone $employeesQ)->count(),
@@ -275,7 +279,7 @@ class PointsController extends Controller
             'company_id'        => ['nullable', 'integer', 'exists:companies,id'],
             'employee_user_id'  => ['required', 'integer', 'exists:users,id'],
             'type'              => ['required', 'in:earn,redeem,adjust,expire'],
-            'points'            => ['required', 'integer', 'min:1', 'max:1000000'],
+            'points'            => ['required', 'numeric', 'min:0.01', 'max:1000000'],
             'occurred_at'       => ['nullable', 'date'],
             'reference_id'      => ['required', 'integer', 'exists:point_references,id'],
             'note'              => ['nullable', 'string', 'max:500'],
@@ -306,7 +310,7 @@ class PointsController extends Controller
             return back()->withErrors(['reference_id' => 'Referencia inválida.'])->withInput();
         }
 
-        $pts = (int)$data['points'];
+        $pts = round((float) $data['points'], 2);
         if (in_array($data['type'], ['redeem', 'expire'], true)) $pts = -abs($pts);
         else $pts = abs($pts);
 
@@ -332,15 +336,22 @@ class PointsController extends Controller
             ]);
         });
 
-        // Mail al empleado (fuera de transacción)
-        try {
-            $employee->refresh();
-            if (!empty($employee->email)) {
-                $employee->notify(new \App\Notifications\MovimientoPuntosCreado($movement));
-            }
-        } catch (\Throwable $e) {
-            // opcional: loggear si querés
-        }
+try {
+
+
+    $employee->refresh();
+
+    if (!empty($employee->email)) {
+        $employee->notify(new \App\Notifications\MovimientoPuntosCreado($movement));
+    }
+
+} catch (\Throwable $e) {
+
+    \Log::error('ERROR MAIL MovimientoPuntosCreado', [
+        'message' => $e->getMessage(),
+    ]);
+
+}
 
         return redirect()->route('points.index')->with('ok', 'Movimiento guardado.');
     }
@@ -413,7 +424,7 @@ class PointsController extends Controller
 
         $data = $r->validate([
             'type'         => ['required', 'in:earn,redeem,adjust,expire'],
-            'points'       => ['required', 'integer', 'min:1', 'max:1000000'],
+            'points'       => ['required', 'numeric', 'min:0.01', 'max:1000000'],
             'occurred_at'  => ['nullable', 'date'],
             'reference_id' => ['required', 'integer', 'exists:point_references,id'],
             'note'         => ['nullable', 'string', 'max:500'],
@@ -424,7 +435,7 @@ class PointsController extends Controller
             'Tipo'      => (string)($movement->type ?? ''),
             'Puntos'    => (string)($movement->points ?? ''),
             'Fecha'     => optional($movement->occurred_at)->format('d/m/Y H:i') ?? '',
-            'Referencia'=> (string)($movement->reference ?? ''),
+            'Referencia' => (string)($movement->reference ?? ''),
             'Detalle'   => (string)($movement->note ?? ''),
         ];
 
@@ -441,7 +452,7 @@ class PointsController extends Controller
         }
 
         // puntos firmados
-        $pts = (int)$data['points'];
+        $pts = round((float) $data['points'], 2);
         if (in_array($data['type'], ['redeem', 'expire'], true)) $pts = -abs($pts);
         else $pts = abs($pts);
 
@@ -467,7 +478,7 @@ class PointsController extends Controller
             'Tipo'      => (string)($movement->type ?? ''),
             'Puntos'    => (string)($movement->points ?? ''),
             'Fecha'     => optional($movement->occurred_at)->format('d/m/Y H:i') ?? '',
-            'Referencia'=> (string)($movement->reference ?? ''),
+            'Referencia' => (string)($movement->reference ?? ''),
             'Detalle'   => (string)($movement->note ?? ''),
         ];
 
@@ -590,7 +601,18 @@ class PointsController extends Controller
             fwrite($out, "\xEF\xBB\xBF");
 
             fputcsv($out, [
-                'ID', 'Fecha', 'Empresa', 'Empleado', 'CUIL', 'Negocio', 'Tipo', 'Puntos', 'Referencia', 'Nota', 'Creado por', 'Lote'
+                'ID',
+                'Fecha',
+                'Empresa',
+                'Empleado',
+                'CUIL',
+                'Negocio',
+                'Tipo',
+                'Puntos',
+                'Referencia',
+                'Nota',
+                'Creado por',
+                'Lote'
             ]);
 
             $q->chunk(500, function ($rows) use ($out) {
@@ -654,9 +676,9 @@ class PointsController extends Controller
         $q = PointMovement::query()->where('employee_user_id', $employeeUserId);
         if ($hasVoided) $q->whereNull('voided_at');
 
-        $earned    = (int)(clone $q)->where('points', '>', 0)->sum('points');
-        $redeemAbs = (int)abs((clone $q)->where('points', '<', 0)->sum('points'));
-        $available = (int)(clone $q)->sum('points');
+        $earned    = round((float)(clone $q)->where('points', '>', 0)->sum('points'), 2);
+        $redeemAbs = round(abs((float)(clone $q)->where('points', '<', 0)->sum('points')), 2);
+        $available = round((float)(clone $q)->sum('points'), 2);
 
         return [
             'total_earned'   => $earned,
@@ -667,11 +689,11 @@ class PointsController extends Controller
 
     private function computeStatsForQuery($q): array
     {
-        $totalEarned    = (int)(clone $q)->where('points', '>', 0)->sum('points');
-        $totalRedeemAbs = (int)abs((clone $q)->where('points', '<', 0)->sum('points'));
+        $totalEarned    = round((float)(clone $q)->where('points', '>', 0)->sum('points'), 2);
+        $totalRedeemAbs = round(abs((float)(clone $q)->where('points', '<', 0)->sum('points')), 2);
 
         $totalMovements = (int)(clone $q)->count();
-        $totalPoints    = (int)(clone $q)->sum('points');
+        $totalPoints    = round((float)(clone $q)->sum('points'), 2);
 
         $avg = $totalMovements > 0 ? ($totalPoints / $totalMovements) : 0;
 

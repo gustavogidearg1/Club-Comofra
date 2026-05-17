@@ -4,6 +4,12 @@
 
 @section('content')
 
+@php
+  function points_fmt($value) {
+      return number_format((float)($value ?? 0), 2, ',', '.');
+  }
+@endphp
+
 <style>
   .mat-sort { display:inline-flex; align-items:center; gap:.25rem; cursor:pointer; text-decoration:none; }
   .mat-sort .sort-icon { font-size:.9rem; opacity:.6; }
@@ -83,7 +89,7 @@
         <div class="card summary-card h-100">
           <div class="card-body text-center">
             <div class="text-success"><i class="bi bi-wallet2 summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($stats['total_points']) }}</div>
+            <div class="stats-number">{{ points_fmt($stats['total_points']) }}</div>
             <div class="stats-label">Puntos totales</div>
           </div>
         </div>
@@ -93,7 +99,7 @@
         <div class="card summary-card h-100">
           <div class="card-body text-center">
             <div class="text-primary"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($stats['total_earned']) }}</div>
+            <div class="stats-number">{{ points_fmt($stats['total_earned']) }}</div>
             <div class="stats-label">Puntos ganados</div>
           </div>
         </div>
@@ -103,7 +109,7 @@
         <div class="card summary-card h-100">
           <div class="card-body text-center">
             <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($stats['total_redeemed']) }}</div>
+            <div class="stats-number">{{ points_fmt($stats['total_redeemed']) }}</div>
             <div class="stats-label">Puntos canjeados</div>
           </div>
         </div>
@@ -123,7 +129,7 @@
         <div class="card summary-card h-100">
           <div class="card-body text-center">
             <div class="text-warning"><i class="bi bi-graph-up summary-icon"></i></div>
-            <div class="stats-number">{{ number_format($stats['avg_points'] ?? 0, 1) }}</div>
+            <div class="stats-number">{{ number_format((float)($stats['avg_points'] ?? 0), 2, ',', '.') }}</div>
             <div class="stats-label">Promedio por movimiento</div>
           </div>
         </div>
@@ -277,7 +283,7 @@
 
               <td class="text-end">
                 <span class="{{ ($point->points ?? 0) >= 0 ? 'points-positive' : 'points-negative' }}">
-                  {{ ($point->points ?? 0) >= 0 ? '+' : '' }}{{ number_format((int)($point->points ?? 0)) }}
+                  {{ ($point->points ?? 0) >= 0 ? '+' : '' }}{{ points_fmt($point->points ?? 0) }}
                 </span>
 
                 @if(!is_null($point->money_amount))

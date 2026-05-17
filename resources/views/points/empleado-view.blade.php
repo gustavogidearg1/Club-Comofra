@@ -4,6 +4,13 @@
 @section('title', 'Mis Puntos')
 
 @section('content')
+
+@php
+  function points_fmt($value) {
+      return number_format((float)($value ?? 0), 2, ',', '.');
+  }
+@endphp
+
 <x-flash />
 
 <style>
@@ -46,7 +53,7 @@
             <div class="text-primary">
               <i class="bi bi-wallet2" style="font-size: 2rem;"></i>
             </div>
-            <div class="stats-number">{{ number_format($totals['available'] ?? 0) }}</div>
+            <div class="stats-number">{{ points_fmt($totals['available'] ?? 0) }}</div>
             <div class="stats-label">Puntos disponibles</div>
           </div>
         </div>
@@ -58,7 +65,7 @@
             <div class="text-success">
               <i class="bi bi-arrow-up-circle" style="font-size: 2rem;"></i>
             </div>
-            <div class="stats-number">{{ number_format($totals['total_earned'] ?? 0) }}</div>
+            <div class="stats-number">{{ points_fmt($totals['total_earned'] ?? 0) }}</div>
             <div class="stats-label">Puntos ganados</div>
           </div>
         </div>
@@ -70,7 +77,7 @@
             <div class="text-danger">
               <i class="bi bi-arrow-down-circle" style="font-size: 2rem;"></i>
             </div>
-            <div class="stats-number">{{ number_format($totals['total_redeemed'] ?? 0) }}</div>
+            <div class="stats-number">{{ points_fmt($totals['total_redeemed'] ?? 0) }}</div>
             <div class="stats-label">Puntos canjeados</div>
           </div>
         </div>
@@ -114,7 +121,7 @@
               // ✅ Traducción desde config/points.php
               $typeText = config("points.types.{$p->type}") ?? ucfirst($p->type);
 
-              $pts = (int)($p->points ?? 0);
+              $pts = (float)($p->points ?? 0);
 
               // Si existe la columna (después de tu migración), mostramos anulado
               $isVoided = isset($p->voided_at) && !is_null($p->voided_at);
@@ -138,7 +145,7 @@
 
               <td class="text-end">
                 <span class="{{ $pts >= 0 ? 'points-positive' : 'points-negative' }}">
-                  {{ $pts >= 0 ? '+' : '-' }}{{ number_format(abs($pts)) }}
+                  {{ $pts >= 0 ? '+' : '-' }}{{ points_fmt(abs($pts)) }}
                 </span>
               </td>
 

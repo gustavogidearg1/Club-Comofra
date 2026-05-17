@@ -5,6 +5,13 @@
 
 @section('content')
 
+@php
+  function points_fmt($value) {
+      return number_format((float)($value ?? 0), 2, ',', '.');
+  }
+@endphp
+
+
 <style>
   .summary-card {
     border-radius: 10px;
@@ -49,7 +56,7 @@
 </style>
 
 @php
-  $available = (int)($totals['available'] ?? 0);
+  $available = (float)($totals['available'] ?? 0);
 @endphp
 
 <div class="card mat-card">
@@ -103,7 +110,7 @@
           <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
           <div class="stats-number">
             <span class="{{ $available > 0 ? 'points-positive' : ($available < 0 ? 'points-negative' : 'points-neutral') }}">
-              {{ number_format($available) }}
+              {{ points_fmt($available) }}
             </span>
           </div>
           <div class="stats-label">Disponible</div>
@@ -115,7 +122,7 @@
       <div class="card summary-card h-100">
         <div class="card-body text-center">
           <div class="text-success"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
-          <div class="stats-number">{{ number_format($totals['total_earned'] ?? 0) }}</div>
+          <div class="stats-number">{{ points_fmt($totals['total_earned'] ?? 0) }}</div>
           <div class="stats-label">Ganado</div>
         </div>
       </div>
@@ -125,7 +132,7 @@
       <div class="card summary-card h-100">
         <div class="card-body text-center">
           <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
-          <div class="stats-number">{{ number_format($totals['total_redeemed'] ?? 0) }}</div>
+          <div class="stats-number">{{ points_fmt($totals['total_redeemed'] ?? 0) }}</div>
           <div class="stats-label">Canjeado</div>
         </div>
       </div>
@@ -211,10 +218,12 @@
 
               <td class="text-end">
                 <span class="{{ ($m->points ?? 0) >= 0 ? 'points-positive' : 'points-negative' }}">
-                  {{ ($m->points ?? 0) >= 0 ? '+' : '' }}{{ number_format($m->points ?? 0) }}
+                  {{ ($m->points ?? 0) >= 0 ? '+' : '' }}{{ points_fmt($m->points ?? 0) }}
                 </span>
                 @if(!is_null($m->money_amount))
-                  <div class="small text-muted">${{ number_format((float)$m->money_amount, 2, ',', '.') }}</div>
+                  <div class="small text-muted">
+  ${{ points_fmt($m->money_amount) }}
+</div>
                 @endif
               </td>
 

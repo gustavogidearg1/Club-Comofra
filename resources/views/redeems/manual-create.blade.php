@@ -66,12 +66,12 @@
         <div class="mb-3">
           <label class="form-label fw-semibold">Puntos a consumir</label>
           <input id="pointsInput"
-                 type="number"
-                 min="1"
-                 name="points"
-                 class="form-control @error('points') is-invalid @enderror"
-                    value="{{ old('points') }}"
-                 required>
+       type="text"
+       inputmode="numeric"
+       name="points"
+       class="form-control @error('points') is-invalid @enderror"
+       value="{{ old('points') }}"
+       required>
           @error('points') <div class="invalid-feedback">{{ $message }}</div> @enderror
 
           <div id="warnSaldo" class="alert alert-warning mt-2 mb-0" style="display:none;">
@@ -127,22 +127,49 @@
 @push('scripts')
 <script>
 (function(){
-  const form        = document.getElementById('manualForm');
-  const submitBtn   = document.getElementById('submitBtn');
-  const modalEl     = document.getElementById('modalSubmittingRedeem');
-  const input       = document.getElementById('pointsInput');
-  const saldoEl     = document.getElementById('saldoVal');
+  const form      = document.getElementById('manualForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const modalEl   = document.getElementById('modalSubmittingRedeem');
+  const input     = document.getElementById('pointsInput');
+  const saldoEl   = document.getElementById('saldoVal');
+  const restaraEl = document.getElementById('restara');
+  const warnSaldo = document.getElementById('warnSaldo');
 
   if (!form || !submitBtn || !modalEl || !input || !saldoEl) return;
 
   let submitting = false;
+  const saldo = parseFloat(String(saldoEl.innerText).replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0);
 
-  // Obtener saldo (limpiando formato)
-  const saldo = parseInt(saldoEl.innerText.replace(/\D/g, '') || 0);
+  function normalizeNumber(value) {
+    value = String(value || '').trim();
 
-  /* =========================
-     Helpers UI
-  ========================= */
+    // deja solo números, punto y coma
+    value = value.replace(/[^\d.,]/g, '');
+
+    // si usa coma decimal: 65000,22 o 65.000,22
+    if (value.includes(',')) {
+      value = value.replace(/\./g, '').replace(',', '.');
+    }
+
+    return value;
+  }
+
+  function getNumericValue() {
+    const normalized = normalizeNumber(input.value);
+    return parseFloat(normalized);
+  }
+
+  function formatDisplay(value) {
+    const normalized = normalizeNumber(value);
+    const number = parseFloat(normalized);
+
+    if (isNaN(number)) return '0,00';
+
+    return number.toLocaleString('es-AR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
 
   function showError(msg) {
     input.classList.add('is-invalid');
@@ -156,7 +183,6 @@
 
     feedback.innerText = msg;
     feedback.style.display = 'block';
-
     input.focus();
   }
 
@@ -167,67 +193,79 @@
     if (feedback) feedback.style.display = 'none';
   }
 
-  /* =========================
-     Eventos input
-  ========================= */
+  input.addEventListener('input', function () {
+    // NO formateamos el input mientras escribe
+    input.value = input.value.replace(/[^\d.,]/g, '');
 
-  input.addEventListener('input', clearError);
+    const value = getNumericValue();
+
+    if (restaraEl) {
+      restaraEl.innerText = formatDisplay(input.value);
+    }
+
+    if (warnSaldo) {
+      warnSaldo.style.display = !isNaN(value) && value > saldo ? 'block' : 'none';
+    }
+
+    clearError();
+  });
 
   input.addEventListener('blur', function() {
-    const value = parseInt(input.value);
+    const value = getNumericValue();
 
     if (!input.value || isNaN(value) || value <= 0) {
       showError('Debe ser mayor a 0');
+      return;
     }
+
+    // al salir del campo recién lo mostramos lindo
+    input.value = formatDisplay(input.value);
   });
 
-  /* =========================
-     Submit
-  ========================= */
+  input.addEventListener('focus', function() {
+    // al volver a editar, lo dejamos en formato editable
+    input.value = normalizeNumber(input.value);
+  });
 
   form.addEventListener('submit', function(ev){
 
-    // evitar doble submit
     if (submitting) {
       ev.preventDefault();
       return;
     }
 
-    const value = parseInt(input.value);
+    const value = getNumericValue();
 
-    // ❌ Validación puntos
     if (!input.value || isNaN(value) || value <= 0) {
       ev.preventDefault();
       showError('Ingresá puntos válidos (mayor a 0)');
       return;
     }
 
-    // ❌ Validación saldo
     if (value > saldo) {
       ev.preventDefault();
       showError('No podés consumir más que tu saldo disponible');
       return;
     }
 
-    // HTML5 validation (por si hay otros campos)
     if (!form.checkValidity()) {
       return;
     }
 
-    // botón disabled (extra seguridad)
     if (submitBtn.disabled) {
       ev.preventDefault();
       return;
     }
 
+    // Laravel recibe 65000.22
+    input.value = normalizeNumber(input.value);
+
     submitting = true;
 
-    // bloquea UI
     submitBtn.disabled = true;
     submitBtn.classList.add('disabled');
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Enviando…';
 
-    // mostrar modal
     const tmp = document.createElement('button');
     tmp.type = 'button';
     tmp.setAttribute('data-bs-toggle', 'modal');
@@ -236,13 +274,7 @@
     document.body.appendChild(tmp);
     tmp.click();
     tmp.remove();
-
-    // no preventDefault → sigue submit normal
   });
-
-  /* =========================
-     Back navigation fix
-  ========================= */
 
   window.addEventListener('pageshow', function(){
     submitting = false;

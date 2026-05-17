@@ -2,6 +2,12 @@
 
 @section('title', 'Resumen de puntos')
 
+@php
+  function points_fmt($value) {
+      return points_fmt((float)($value ?? 0), 2, ',', '.');
+  }
+@endphp
+
 @push('styles')
 <style>
   .summary-card {
@@ -103,7 +109,7 @@
           <div class="card summary-card h-100">
             <div class="card-body text-center">
               <div class="text-primary"><i class="bi bi-people summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($overallTotals['total_employees'] ?? 0) }}</div>
+              <div class="stats-number">{{ points_fmt($overallTotals['total_employees'] ?? 0) }}</div>
               <div class="stats-label">Empleados</div>
             </div>
           </div>
@@ -113,7 +119,7 @@
           <div class="card summary-card h-100">
             <div class="card-body text-center">
               <div class="text-info"><i class="bi bi-wallet2 summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($overallTotals['total_points_available'] ?? 0) }}</div>
+              <div class="stats-number">{{ points_fmt($overallTotals['total_points_available'] ?? 0) }}</div>
               <div class="stats-label">Disponible</div>
             </div>
           </div>
@@ -123,7 +129,7 @@
           <div class="card summary-card h-100">
             <div class="card-body text-center">
               <div class="text-success"><i class="bi bi-arrow-up-circle summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($overallTotals['total_points_earned'] ?? 0) }}</div>
+              <div class="stats-number">{{ points_fmt($overallTotals['total_points_earned'] ?? 0) }}</div>
               <div class="stats-label">Ganado</div>
             </div>
           </div>
@@ -133,7 +139,7 @@
           <div class="card summary-card h-100">
             <div class="card-body text-center">
               <div class="text-danger"><i class="bi bi-arrow-down-circle summary-icon"></i></div>
-              <div class="stats-number">{{ number_format($overallTotals['total_points_redeemed'] ?? 0) }}</div>
+              <div class="stats-number">{{ points_fmt($overallTotals['total_points_redeemed'] ?? 0) }}</div>
               <div class="stats-label">Rendición</div>
             </div>
           </div>
@@ -159,7 +165,7 @@
 
         <tbody>
           @forelse($summary as $emp)
-            @php $available = (int)($emp->total_available ?? 0); @endphp
+            @php $available = (float)($emp->total_available ?? 0); @endphp
             <tr>
               <td>
                 <div class="fw-semibold">{{ $emp->name }}</div>
@@ -174,21 +180,21 @@
               </td>
 
               <td class="text-end">
-                <span class="points-positive">+{{ number_format($emp->total_earned ?? 0) }}</span>
+                <span class="points-positive">+{{ points_fmt($emp->total_earned ?? 0) }}</span>
               </td>
 
               <td class="text-end">
-                <span class="points-negative">-{{ number_format($emp->total_redeemed ?? 0) }}</span>
+                <span class="points-negative">-{{ points_fmt($emp->total_redeemed ?? 0) }}</span>
               </td>
 
               <td class="text-end">
                 <span class="{{ $available > 0 ? 'points-positive' : ($available < 0 ? 'points-negative' : 'points-neutral') }}">
-                  {{ number_format($available) }}
+                  {{ points_fmt($available) }}
                 </span>
               </td>
 
               <td class="text-end">
-                <span class="badge bg-light text-dark">{{ number_format($emp->movement_count ?? 0) }}</span>
+                <span class="badge bg-light text-dark">{{ points_fmt($emp->movement_count ?? 0) }}</span>
               </td>
 
               <td class="text-end">

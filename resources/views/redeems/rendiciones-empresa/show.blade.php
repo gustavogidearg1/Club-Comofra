@@ -85,7 +85,7 @@
         <div class="col-12 col-md-6 d-flex align-items-start gap-2 flex-wrap">
           <span class="chip">
             <i class="bi bi-123"></i>
-            Total: {{ number_format((int)$settlement->total_points, 0, ',', '.') }} pts
+            Total: {{ number_format((float)$settlement->total_points, 2, ',', '.') }} pts
           </span>
 
 
@@ -163,10 +163,10 @@
                   <div class="small-muted">{{ $r->employee?->cuil ? 'CUIL '.$r->employee->cuil : '' }}</div>
                 </td>
                 <td class="text-end fw-semibold">
-                  {{ number_format((int)$r->points, 0, ',', '.') }}
+                  {{ number_format((float)$r->points, 2, ',', '.') }}
                 </td>
                 <td class="text-end">
-                  $ {{ number_format((int)$r->points, 0, ',', '.') }}
+                  $ {{ number_format((float)$r->points, 2, ',', '.') }}
                 </td>
                 <td>
                   {{-- Mostrar texto en español (podés mejorar con helper) --}}
@@ -193,8 +193,8 @@
           <tfoot>
             <tr class="table-light">
               <th colspan="2" class="text-end">Totales</th>
-              <th class="text-end">{{ number_format((int)$settlement->total_points, 0, ',', '.') }}</th>
-              <th class="text-end">$ {{ number_format((int)($settlement->total_amount ?? $settlement->total_points), 0, ',', '.') }}</th>
+              <th class="text-end">{{ number_format((float)$settlement->total_points, 2, ',', '.') }}</th>
+              <th class="text-end">$ {{ number_format((float)($settlement->total_amount ?? $settlement->total_points), 2, ',', '.') }}</th>
               <th colspan="2"></th>
             </tr>
           </tfoot>

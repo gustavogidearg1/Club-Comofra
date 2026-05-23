@@ -19,30 +19,19 @@ class RedemptionController extends Controller
         $this->middleware(['auth']);
     }
 
-    /* =========================================================
-       Helpers
-    ========================================================= */
-
 private function saldoEmpleado(int $employeeUserId): float
 {
-    return round((float) PointMovement::where('employee_user_id', $employeeUserId)->sum('points'), 2);
+    return round(
+        (float) PointMovement::where('employee_user_id', $employeeUserId)->sum('points'),
+        2
+    );
 }
-
-    private function assertUserIsBusiness(User $u): bool
-    {
-        return $u->hasRole('negocio') || $u->hasRole('admin_sitio');
-    }
 
     private function sameCompanyIfApplies(?int $companyA, ?int $companyB): bool
     {
         if (empty($companyA) || empty($companyB)) return true;
-        return (int)$companyA === (int)$companyB;
+        return (int) $companyA === (int) $companyB;
     }
-
-    /* =========================================================
-       NEGOCIO: Formulario crear consumo (elige empleado)
-       - negocio o admin_sitio
-    ========================================================= */
 
     public function create()
     {
@@ -52,27 +41,21 @@ private function saldoEmpleado(int $employeeUserId): float
             return redirect()->route('dashboard')->with('error', 'No tiene permisos para crear consumos.');
         }
 
-        // Empleados: si es admin_sitio, podrías listar todos o filtrar por company_id si querés.
         $companyId = $user->company_id;
 
-$employees = User::query()
-    ->when(
-        !$user->hasRole('admin_sitio') && !empty($companyId),
-        fn($q) => $q->where('company_id', $companyId)
-    )
-    ->where('activo', true)
-    ->whereHas('roles', fn($q) => $q->where('name', 'empleado'))
-    ->orderBy('name')
-    ->get(['id', 'name', 'email', 'cuil', 'company_id']);
+        $employees = User::query()
+            ->when(
+                !$user->hasRole('admin_sitio') && !empty($companyId),
+                fn($q) => $q->where('company_id', $companyId)
+            )
+            ->where('activo', true)
+            ->whereHas('roles', fn($q) => $q->where('name', 'empleado'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'cuil', 'company_id']);
 
         return view('redeems.create', compact('employees'));
     }
 
-    /**
-     * NEGOCIO: guarda consumo (confirmado inmediato) + token comprobante
-     * - negocio: el negocio es Auth::user()
-     * - admin_sitio: puede mandar business_id desde el form (QR)
-     */
     public function store(Request $request)
     {
         $auth = Auth::user();
@@ -85,8 +68,6 @@ $employees = User::query()
             'employee_user_id' => ['required', 'integer', 'exists:users,id'],
             'points'           => ['required', 'integer', 'min:1'],
             'note'             => ['nullable', 'string', 'max:500'],
-
-            // SOLO para admin_sitio (si usa QR para elegir negocio):
             'business_id'      => ['nullable', 'integer', 'exists:users,id'],
         ], [], [
             'employee_user_id' => 'empleado',
@@ -97,42 +78,40 @@ $employees = User::query()
 
         $employee = User::findOrFail($data['employee_user_id']);
 
-        // Determinar negocio
         $business = $auth;
+
         if ($auth->hasRole('admin_sitio') && !empty($data['business_id'])) {
             $business = User::findOrFail($data['business_id']);
+
             if (!$business->hasRole('negocio')) {
-                return back()->withErrors(['business_id' => 'El usuario seleccionado no es un negocio válido.'])->withInput();
+                return back()
+                    ->withErrors(['business_id' => 'El usuario seleccionado no es un negocio válido.'])
+                    ->withInput();
             }
         }
 
-        // Seguridad por empresa (si aplica)
         if (!$this->sameCompanyIfApplies($employee->company_id, $business->company_id)) {
-            return back()->withErrors([
-                'employee_user_id' => 'El empleado no pertenece a la misma empresa que el negocio.',
-            ])->withInput();
+            return back()
+                ->withErrors(['employee_user_id' => 'El empleado no pertenece a la misma empresa que el negocio.'])
+                ->withInput();
         }
 
-        $pointsToRedeem = (int) $data['points'];
+        $pointsToRedeem = round((float) $data['points'], 2);
         $token = Str::random(48);
 
         $result = DB::transaction(function () use ($auth, $business, $employee, $pointsToRedeem, $data, $token) {
+            $saldo = $this->saldoEmpleado((int) $employee->id);
 
-            $saldo = $this->saldoEmpleado((int)$employee->id);
             if ($saldo < $pointsToRedeem) {
                 return ['ok' => false, 'msg' => 'Saldo insuficiente para consumir esos puntos.'];
             }
 
-            // 1) Movimiento (consumo inmediato)
             $movement = PointMovement::create([
                 'company_id'        => $business->company_id ?? $employee->company_id,
                 'employee_user_id'  => $employee->id,
                 'business_user_id'  => $business->id,
-
-                // quién lo creó (negocio o admin)
                 'created_by'        => $auth->id,
                 'confirmed_by'      => $auth->id,
-
                 'batch_id'          => null,
                 'type'              => 'redeem',
                 'subtype'           => 'business_spend',
@@ -143,19 +122,16 @@ $employees = User::query()
                 'occurred_at'       => now(),
             ]);
 
-            // 2) Comprobante (confirmado)
             $redemption = PointRedemption::create([
                 'company_id'        => $movement->company_id,
                 'employee_user_id'  => $employee->id,
                 'business_user_id'  => $business->id,
                 'created_by'        => $auth->id,
-
                 'point_movement_id' => $movement->id,
-                'points'            => $pointsToRedeem, // positivo para mostrar
+                'points'            => $pointsToRedeem,
                 'reference'         => 'GASTO_NEGOCIO',
                 'note'              => $data['note'] ?? null,
                 'status'            => 'confirmed',
-
                 'token'             => $token,
                 'expires_at'        => null,
                 'confirmed_at'      => now(),
@@ -170,42 +146,21 @@ $employees = User::query()
         }
 
         $redemption = $result['redemption'];
-
-        // URL del comprobante (para QR)
         $url = route('redeems.confirm.show', $redemption->token);
 
-        // Notificación al empleado (opcional)
-try {
-    $mov = $result['movement']->load(['employee','business']);
+        try {
+            $mov = $result['movement']->load(['employee', 'business']);
 
-    // 1) Email al empleado
-    if (!empty($mov->employee?->email)) {
-        $mov->employee->notify(new MovimientoPuntosCreado($mov));
-    }
-
-try {
-    $mov = $result['movement']->load(['employee','business']);
-
-    // Email al empleado
-    if (!empty($mov->employee?->email)) {
-        $mov->employee->notify(new MovimientoPuntosCreado($mov));
-    }
-
-} catch (\Throwable $e) {
-    Log::error('Error enviando notificaciones de consumo (store)', [
-        'movement_id' => $result['movement']->id ?? null,
-        'redemption_id' => $redemption->id ?? null,
-        'error' => $e->getMessage(),
-    ]);
-}
-
-} catch (\Throwable $e) {
-    Log::error('Error enviando notificaciones de consumo (store)', [
-        'movement_id' => $result['movement']->id ?? null,
-        'redemption_id' => $redemption->id ?? null,
-        'error' => $e->getMessage(),
-    ]);
-}
+            if (!empty($mov->employee?->email)) {
+                $mov->employee->notify(new MovimientoPuntosCreado($mov));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error enviando notificaciones de consumo (store)', [
+                'movement_id'   => $result['movement']->id ?? null,
+                'redemption_id' => $redemption->id ?? null,
+                'error'         => $e->getMessage(),
+            ]);
+        }
 
         return view('redeems.created', [
             'redemption' => $redemption,
@@ -214,10 +169,6 @@ try {
             'url'        => $url,
         ]);
     }
-
-    /* =========================================================
-       COMPROBANTE: ver por token (empleado/negocio/admin)
-    ========================================================= */
 
     public function showConfirm(string $token)
     {
@@ -238,10 +189,9 @@ try {
             'movement:id,points,occurred_at',
         ])->where('token', $token)->firstOrFail();
 
-        // Si no es admin_sitio, debe ser el empleado o el negocio del comprobante
         if (!$user->hasRole('admin_sitio')) {
-            $isEmployee = (int)$redemption->employee_user_id === (int)$user->id;
-            $isBusiness = (int)$redemption->business_user_id === (int)$user->id;
+            $isEmployee = (int) $redemption->employee_user_id === (int) $user->id;
+            $isBusiness = (int) $redemption->business_user_id === (int) $user->id;
 
             if (!$isEmployee && !$isBusiness) {
                 return redirect()->route('dashboard')->with('error', 'Este comprobante no corresponde a su usuario.');
@@ -252,10 +202,6 @@ try {
             'redemption' => $redemption,
         ]);
     }
-
-    /* =========================================================
-       EMPLEADO: consumo manual (elige negocio o por QR)
-    ========================================================= */
 
     public function manualIndex()
     {
@@ -270,9 +216,9 @@ try {
             ->whereHas('roles', fn($q) => $q->where('name', 'negocio'))
             ->when(!empty($user->company_id), fn($q) => $q->where('company_id', $user->company_id))
             ->orderBy('name')
-            ->get(['id','name','company_id']);
+            ->get(['id', 'name', 'company_id']);
 
-        $saldo = $this->saldoEmpleado((int)$user->id);
+        $saldo = $this->saldoEmpleado((int) $user->id);
 
         return view('redeems.manual-index', [
             'employee'   => $user,
@@ -283,7 +229,7 @@ try {
 
     public function manualCreate(User $business)
     {
-        $user = Auth::user(); // empleado
+        $user = Auth::user();
 
         if (!$user->hasRole('empleado') && !$user->hasRole('admin_sitio')) {
             return redirect()->route('dashboard')->with('error', 'Solo un empleado puede cargar un consumo manual.');
@@ -297,7 +243,7 @@ try {
             return redirect()->route('dashboard')->with('error', 'Este negocio no pertenece a tu empresa.');
         }
 
-        $saldo = $this->saldoEmpleado((int)$user->id);
+        $saldo = $this->saldoEmpleado((int) $user->id);
 
         return view('redeems.manual-create', [
             'business' => $business,
@@ -306,93 +252,93 @@ try {
         ]);
     }
 
-public function manualStore(Request $request, User $business)
-{
-    $user = Auth::user(); // empleado
+    public function manualStore(Request $request, User $business)
+    {
+        $user = Auth::user();
 
-    if (!$user->hasRole('empleado') && !$user->hasRole('admin_sitio')) {
-        return redirect()->route('dashboard')->with('error', 'Solo un empleado puede cargar un consumo manual.');
-    }
-
-    if (!$business->hasRole('negocio') && !$business->hasRole('admin_sitio')) {
-        return back()->with('error', 'Negocio inválido.');
-    }
-
-    if (!$this->sameCompanyIfApplies($user->company_id, $business->company_id)) {
-        return back()->with('error', 'Este negocio no pertenece a tu empresa.');
-    }
-
-    $data = $request->validate([
-        'points' => ['required', 'numeric', 'min:0.01'],
-        'note'   => ['nullable','string','max:500'],
-    ], [], [
-        'points' => 'puntos',
-        'note'   => 'nota',
-    ]);
-
-    $pointsToRedeem = round((float) $data['points'], 2);
-
-    $result = DB::transaction(function () use ($user, $business, $pointsToRedeem, $data) {
-
-        $saldo = $this->saldoEmpleado((int)$user->id);
-
-        if ($saldo < $pointsToRedeem) {
-            return ['ok' => false, 'msg' => 'Saldo insuficiente para consumir esos puntos.'];
+        if (!$user->hasRole('empleado') && !$user->hasRole('admin_sitio')) {
+            return redirect()->route('dashboard')->with('error', 'Solo un empleado puede cargar un consumo manual.');
         }
 
-        $movement = PointMovement::create([
-            'company_id'        => $user->company_id ?? $business->company_id,
-            'employee_user_id'  => $user->id,
-            'business_user_id'  => $business->id,
-            'created_by'        => $user->id,
-            'confirmed_by'      => $user->id,
-            'type'              => 'redeem',
-            'subtype'           => 'manual_qr',
-            'points'            => -abs($pointsToRedeem),
-            'reference'         => 'GASTO_MANUAL_QR',
-            'note'              => $data['note'] ?? null,
-            'occurred_at'       => now(),
+        if (!$business->hasRole('negocio') && !$business->hasRole('admin_sitio')) {
+            return back()->with('error', 'Negocio inválido.');
+        }
+
+        if (!$this->sameCompanyIfApplies($user->company_id, $business->company_id)) {
+            return back()->with('error', 'Este negocio no pertenece a tu empresa.');
+        }
+
+        $data = $request->validate([
+            'points' => ['required', 'numeric', 'min:0.01'],
+            'note'   => ['nullable', 'string', 'max:500'],
+        ], [], [
+            'points' => 'puntos',
+            'note'   => 'nota',
         ]);
 
-        $redemption = PointRedemption::create([
-            'company_id'        => $movement->company_id,
-            'employee_user_id'  => $user->id,
-            'business_user_id'  => $business->id,
-            'created_by'        => $user->id,
-            'point_movement_id' => $movement->id,
-            'points'            => $pointsToRedeem,
-            'reference'         => 'GASTO_MANUAL_QR',
-            'note'              => $data['note'] ?? null,
-            'status'            => 'confirmed',
-            'token'             => Str::random(48),
-            'confirmed_at'      => now(),
-            'confirmed_by'      => $user->id,
-        ]);
+        $pointsToRedeem = round((float) $data['points'], 2);
 
-        return ['ok' => true, 'movement' => $movement, 'redemption' => $redemption];
-    });
+        $result = DB::transaction(function () use ($user, $business, $pointsToRedeem, $data) {
+            $saldo = $this->saldoEmpleado((int) $user->id);
 
-    if (!$result['ok']) {
-        return back()->withErrors(['points' => $result['msg']])->withInput();
+            if ($saldo < $pointsToRedeem) {
+                return ['ok' => false, 'msg' => 'Saldo insuficiente para consumir esos puntos.'];
+            }
+
+            $movement = PointMovement::create([
+                'company_id'        => $user->company_id ?? $business->company_id,
+                'employee_user_id'  => $user->id,
+                'business_user_id'  => $business->id,
+                'created_by'        => $user->id,
+                'confirmed_by'      => $user->id,
+                'type'              => 'redeem',
+                'subtype'           => 'manual_qr',
+                'points'            => -abs($pointsToRedeem),
+                'reference'         => 'GASTO_MANUAL_QR',
+                'note'              => $data['note'] ?? null,
+                'occurred_at'       => now(),
+            ]);
+
+            $redemption = PointRedemption::create([
+                'company_id'        => $movement->company_id,
+                'employee_user_id'  => $user->id,
+                'business_user_id'  => $business->id,
+                'created_by'        => $user->id,
+                'point_movement_id' => $movement->id,
+                'points'            => $pointsToRedeem,
+                'reference'         => 'GASTO_MANUAL_QR',
+                'note'              => $data['note'] ?? null,
+                'status'            => 'confirmed',
+                'token'             => Str::random(48),
+                'confirmed_at'      => now(),
+                'confirmed_by'      => $user->id,
+            ]);
+
+            return ['ok' => true, 'movement' => $movement, 'redemption' => $redemption];
+        });
+
+        if (!$result['ok']) {
+            return back()->withErrors(['points' => $result['msg']])->withInput();
+        }
+
+        try {
+            $mov = $result['movement']->load(['employee', 'business']);
+
+            if (!empty($mov->employee?->email)) {
+                $mov->employee->notify(new MovimientoPuntosCreado($mov));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error enviando notificaciones de consumo manual', [
+                'movement_id'   => $result['movement']->id ?? null,
+                'redemption_id' => $result['redemption']->id ?? null,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+
+        return redirect()
+            ->route('redeems.confirm.show', $result['redemption']->token)
+            ->with('success', 'Consumo registrado correctamente.');
     }
-
-    $mov = $result['movement'];
-    $mov->load(['employee','business']);
-
-
-    if (!empty($mov->employee?->email)) {
-        $mov->employee->notify(new MovimientoPuntosCreado($mov));
-    }
-
-    return redirect()
-        ->route('redeems.confirm.show', $result['redemption']->token)
-        ->with('success', 'Consumo registrado correctamente.');
-}
-
-    /* =========================================================
-       JSON: obtener negocio por id (para QR)
-       - usar desde fetch('/abm/businesses/{id}/json')
-    ========================================================= */
 
     public function businessJson(int $id)
     {
@@ -400,10 +346,8 @@ public function manualStore(Request $request, User $business)
 
         $u = User::query()->whereKey($id)->firstOrFail();
 
-        // Debe ser negocio
         abort_unless($u->hasRole('negocio'), 404);
 
-        // Si el auth tiene company_id, exigir misma empresa (salvo admin_sitio)
         if (!$auth->hasRole('admin_sitio')) {
             abort_unless($this->sameCompanyIfApplies($auth->company_id, $u->company_id), 404);
         }

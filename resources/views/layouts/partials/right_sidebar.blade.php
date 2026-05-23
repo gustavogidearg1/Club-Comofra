@@ -57,6 +57,8 @@
   $collapseId = fn($key) => "collapse-{$uid}-{$key}";
 @endphp
 
+
+
 <nav class="sidebar-nav {{ $isOffcanvas ? 'is-offcanvas' : '' }} d-flex flex-column">
 
   {{-- Brand --}}
@@ -79,14 +81,32 @@
       <i class="bi bi-chevron-down small opacity-75"></i>
     </button>
 
-    <div class="collapse {{ $openGeneral ? 'show' : '' }}" id="{{ $collapseId('general') }}">
+<div class="collapse {{ $openGeneral ? 'show' : '' }}" id="{{ $collapseId('general') }}">
+
+        <div class="collapse {{ $openGeneral ? 'show' : '' }}" id="{{ $collapseId('general') }}">
       <a class="sidebar-link {{ $isActive('dashboard') ? 'active' : '' }}"
          href="{{ route('dashboard') }}"
          @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Dashboard" @endif>
-        <i class="bi bi-speedometer2"></i>
-        <span class="link-text">Dashboard</span>
+        <i class="bi bi-house"></i>
+        <span class="link-text">Inicio</span>
       </a>
     </div>
+
+
+@if($isEmployee || $isSiteAdmin)
+  <div class="collapse {{ $openGeneral ? 'show' : '' }}" id="{{ $collapseId('general') }}">
+    <a class="sidebar-link {{ $starts('redeems.manual.') ? 'active' : '' }}"
+       href="{{ route('redeems.manual.index') }}"
+       @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Consumo" @endif>
+      <i class="bi bi-shop"></i>
+      <span class="link-text">Consumo</span>
+    </a>
+  </div>
+@endif
+
+</div>
+
+
   </div>
 
   {{-- ====== EMPLEADO ====== --}}
@@ -284,8 +304,22 @@
     </div>
   @endif
 
+
+
   {{-- Footer --}}
   <div class="sidebar-footer mt-auto px-3 py-3">
+
+{{-- CENTRO DE AYUDA --}}
+<a href="https://wa.me/543534191741"
+   target="_blank"
+   class="sidebar-link mb-2">
+
+    <i class="bi bi-headset"></i>
+
+    <span class="link-text">
+        Centro de ayuda
+    </span>
+</a>
 
 <div class="sidebar-user d-flex align-items-center gap-2"
      @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="{{ $u->name ?? '' }}" @endif>

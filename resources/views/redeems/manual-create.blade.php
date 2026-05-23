@@ -65,9 +65,10 @@
 
         <div class="mb-3">
           <label class="form-label fw-semibold">Puntos a consumir</label>
-          <input id="pointsInput"
-       type="text"
-       inputmode="numeric"
+<input id="pointsInput"
+       type="number"
+       min="0.01"
+       step="0.01"
        name="points"
        class="form-control @error('points') is-invalid @enderror"
        value="{{ old('points') }}"
@@ -127,161 +128,96 @@
 @push('scripts')
 <script>
 (function(){
-  const form      = document.getElementById('manualForm');
-  const submitBtn = document.getElementById('submitBtn');
-  const modalEl   = document.getElementById('modalSubmittingRedeem');
-  const input     = document.getElementById('pointsInput');
-  const saldoEl   = document.getElementById('saldoVal');
-  const restaraEl = document.getElementById('restara');
-  const warnSaldo = document.getElementById('warnSaldo');
 
-  if (!form || !submitBtn || !modalEl || !input || !saldoEl) return;
+    const form      = document.getElementById('manualForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const modalEl   = document.getElementById('modalSubmittingRedeem');
 
-  let submitting = false;
-  const saldo = parseFloat(String(saldoEl.innerText).replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '') || 0);
+    const input     = document.getElementById('pointsInput');
+    const restaraEl = document.getElementById('restara');
+    const warnSaldo = document.getElementById('warnSaldo');
 
-  function normalizeNumber(value) {
-    value = String(value || '').trim();
+    const saldo = @json((int)$saldo);
 
-    // deja solo números, punto y coma
-    value = value.replace(/[^\d.,]/g, '');
-
-    // si usa coma decimal: 65000,22 o 65.000,22
-    if (value.includes(',')) {
-      value = value.replace(/\./g, '').replace(',', '.');
+    if (!form || !submitBtn || !modalEl || !input) {
+        return;
     }
 
-    return value;
-  }
+    let submitting = false;
 
-  function getNumericValue() {
-    const normalized = normalizeNumber(input.value);
-    return parseFloat(normalized);
-  }
+    function actualizarVista() {
 
-  function formatDisplay(value) {
-    const normalized = normalizeNumber(value);
-    const number = parseFloat(normalized);
+        const value = parseFloat(input.value || 0);
 
-    if (isNaN(number)) return '0,00';
+        if (restaraEl) {
+            restaraEl.innerText = isNaN(value)
+                ? '0'
+                : value.toLocaleString('es-AR');
+        }
 
-    return number.toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+        if (warnSaldo) {
+            warnSaldo.style.display =
+                (!isNaN(value) && value > saldo)
+                    ? 'block'
+                    : 'none';
+        }
+    }
+
+    input.addEventListener('input', actualizarVista);
+
+    form.addEventListener('submit', function(ev){
+
+        if (submitting) {
+            ev.preventDefault();
+            return;
+        }
+
+        const value = parseInt(input.value || 0);
+
+        if (isNaN(value) || value <= 0) {
+            ev.preventDefault();
+            alert('Ingresá una cantidad válida de puntos.');
+            return;
+        }
+
+        if (value > saldo) {
+            ev.preventDefault();
+            alert('No podés consumir más que tu saldo disponible.');
+            return;
+        }
+
+        submitting = true;
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
+
+        submitBtn.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Enviando…';
+
+        const tmp = document.createElement('button');
+
+        tmp.type = 'button';
+        tmp.setAttribute('data-bs-toggle', 'modal');
+        tmp.setAttribute('data-bs-target', '#modalSubmittingRedeem');
+        tmp.style.display = 'none';
+
+        document.body.appendChild(tmp);
+
+        tmp.click();
+
+        tmp.remove();
     });
-  }
 
-  function showError(msg) {
-    input.classList.add('is-invalid');
+    window.addEventListener('pageshow', function(){
 
-    let feedback = input.parentNode.querySelector('.invalid-feedback-custom');
-    if (!feedback) {
-      feedback = document.createElement('div');
-      feedback.className = 'invalid-feedback invalid-feedback-custom';
-      input.parentNode.appendChild(feedback);
-    }
+        submitting = false;
 
-    feedback.innerText = msg;
-    feedback.style.display = 'block';
-    input.focus();
-  }
+        submitBtn.disabled = false;
 
-  function clearError() {
-    input.classList.remove('is-invalid');
+        submitBtn.classList.remove('disabled');
 
-    const feedback = input.parentNode.querySelector('.invalid-feedback-custom');
-    if (feedback) feedback.style.display = 'none';
-  }
-
-  input.addEventListener('input', function () {
-    // NO formateamos el input mientras escribe
-    input.value = input.value.replace(/[^\d.,]/g, '');
-
-    const value = getNumericValue();
-
-    if (restaraEl) {
-      restaraEl.innerText = formatDisplay(input.value);
-    }
-
-    if (warnSaldo) {
-      warnSaldo.style.display = !isNaN(value) && value > saldo ? 'block' : 'none';
-    }
-
-    clearError();
-  });
-
-  input.addEventListener('blur', function() {
-    const value = getNumericValue();
-
-    if (!input.value || isNaN(value) || value <= 0) {
-      showError('Debe ser mayor a 0');
-      return;
-    }
-
-    // al salir del campo recién lo mostramos lindo
-    input.value = formatDisplay(input.value);
-  });
-
-  input.addEventListener('focus', function() {
-    // al volver a editar, lo dejamos en formato editable
-    input.value = normalizeNumber(input.value);
-  });
-
-  form.addEventListener('submit', function(ev){
-
-    if (submitting) {
-      ev.preventDefault();
-      return;
-    }
-
-    const value = getNumericValue();
-
-    if (!input.value || isNaN(value) || value <= 0) {
-      ev.preventDefault();
-      showError('Ingresá puntos válidos (mayor a 0)');
-      return;
-    }
-
-    if (value > saldo) {
-      ev.preventDefault();
-      showError('No podés consumir más que tu saldo disponible');
-      return;
-    }
-
-    if (!form.checkValidity()) {
-      return;
-    }
-
-    if (submitBtn.disabled) {
-      ev.preventDefault();
-      return;
-    }
-
-    // Laravel recibe 65000.22
-    input.value = normalizeNumber(input.value);
-
-    submitting = true;
-
-    submitBtn.disabled = true;
-    submitBtn.classList.add('disabled');
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Enviando…';
-
-    const tmp = document.createElement('button');
-    tmp.type = 'button';
-    tmp.setAttribute('data-bs-toggle', 'modal');
-    tmp.setAttribute('data-bs-target', '#modalSubmittingRedeem');
-    tmp.style.display = 'none';
-    document.body.appendChild(tmp);
-    tmp.click();
-    tmp.remove();
-  });
-
-  window.addEventListener('pageshow', function(){
-    submitting = false;
-    submitBtn.disabled = false;
-    submitBtn.classList.remove('disabled');
-    submitBtn.innerHTML = 'Confirmar consumo';
-  });
+        submitBtn.innerHTML = 'Confirmar consumo';
+    });
 
 })();
 </script>

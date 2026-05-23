@@ -156,6 +156,25 @@
 
 </style>
 
+{{-- CONTACTO WHATSAPP
+<div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3 shadow-sm"
+     style="border-radius:14px; font-size: 0.95rem;">
+
+    <i class="bi bi-whatsapp fs-4"></i>
+
+    <div class="flex-grow-1">
+        ¿Necesitás ayuda?
+        <a href="https://wa.me/543534191741"
+           target="_blank"
+           class="fw-bold text-decoration-none text-dark">
+            Escribinos por WhatsApp
+        </a>
+    </div>
+
+</div>
+
+--}}
+
 {{-- HEADER --}}
 <div class="card mat-card mb-3">
   <div class="mat-header">

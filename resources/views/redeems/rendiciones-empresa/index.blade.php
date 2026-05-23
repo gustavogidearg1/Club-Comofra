@@ -107,7 +107,7 @@
       <div class="d-flex flex-wrap gap-2 mb-3">
         <span class="chip">
           <i class="bi bi-123"></i>
-          Total puntos (página): {{ number_format($totalPuntos ?? 0, 0, ',', '.') }}
+          Total puntos (página): {{ number_format($totalPuntos ?? 0, 2, ',', '.') }}
         </span>
       </div>
 
@@ -165,7 +165,7 @@
                   @php
                     $yaRendido = !empty($c->settlement_id);
                     $disabled = $yaRendido || ($estado === 'rendido');
-                    $pts = (int)($c->points ?? 0);
+                    $pts = round((float)($c->points ?? 0), 2);
                   @endphp
                   <tr>
                     <td>
@@ -180,7 +180,7 @@
                     <td>{{ optional($c->movement?->occurred_at ?? $c->created_at)->format('d/m/Y H:i') }}</td>
                     <td>{{ $c->employee?->name ?? '-' }}</td>
                     <td>{{ $c->business?->name ?? '-' }}</td>
-                    <td class="text-end fw-semibold">{{ number_format($pts, 0, ',', '.') }}</td>
+                    <td class="text-end fw-semibold">{{ number_format($pts, 2, ',', '.') }}</td>
                     <td>{{ $c->reference ?? '-' }}</td>
                     <td class="text-muted">{{ $c->note ?? '-' }}</td>
                     <td>
@@ -229,11 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const selected = enabled.filter(ch => ch.checked);
 
     const count = selected.length;
-    let pts = 0;
-    selected.forEach(ch => pts += parseInt(ch.dataset.points || '0', 10) || 0);
+let pts = 0;
+selected.forEach(ch => pts += parseFloat(ch.dataset.points || '0') || 0);
 
     if (selInfo) {
-      selInfo.textContent = `Seleccionados: ${count} • Puntos: ${pts.toLocaleString('es-AR')}`;
+      selInfo.textContent =
+    `Seleccionados: ${count} • Puntos: ${pts.toLocaleString('es-AR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}`;
     }
 
     if (checkAll) {

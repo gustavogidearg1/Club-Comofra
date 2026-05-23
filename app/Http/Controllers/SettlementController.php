@@ -53,14 +53,15 @@ class SettlementController extends Controller
         // ✅ Admin puede filtrar por negocio
         $negocios = collect();
         if ($u->hasRole('admin_sitio') || $u->hasRole('admin_empresa')) {
-            $negocios = User::query()
-                ->whereHas('roles', fn($r) => $r->where('name', 'negocio'))
-                ->when(
-                    !$u->hasRole('admin_sitio') && !empty($u->company_id),
-                    fn($qq) => $qq->where('company_id', $u->company_id)
-                )
-                ->orderBy('name')
-                ->get(['id','name']);
+$negocios = User::query()
+    ->where('activo', true)
+    ->whereHas('roles', fn($r) => $r->where('name', 'negocio'))
+    ->when(
+        !$u->hasRole('admin_sitio') && !empty($u->company_id),
+        fn($qq) => $qq->where('company_id', $u->company_id)
+    )
+    ->orderBy('name')
+    ->get(['id','name']);
 
             if (!empty($businessId)) {
                 $q->where('business_user_id', $businessId);
@@ -105,8 +106,8 @@ class SettlementController extends Controller
             ->orderBy('name')
             ->get(['id','name','cuil','email','company_id']);
 
-        $totalPuntos = (int) $consumos->getCollection()->sum('points');
-        $totalPesos  = $totalPuntos;
+$totalPuntos = round((float) $consumos->getCollection()->sum('points'), 2);
+$totalPesos  = $totalPuntos;
 
         return view('redeems.rendiciones-empresa.index', [
             'consumos'    => $consumos,
@@ -176,7 +177,7 @@ class SettlementController extends Controller
                 abort(422, 'Los consumos seleccionados pertenecen a distintos negocios. Hacé rendiciones separadas.');
             }
 
-            $totalPoints = (int) $rows->sum('points');
+$totalPoints = round((float) $rows->sum('points'), 2);
 
             $settlement = PointSettlement::create([
                 'company_id'       => $companyId,

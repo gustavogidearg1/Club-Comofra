@@ -4,7 +4,7 @@
 
 @php
   function points_fmt($value) {
-      return points_fmt((float)($value ?? 0), 2, ',', '.');
+      return number_format((float)($value ?? 0), 2, ',', '.');
   }
 @endphp
 

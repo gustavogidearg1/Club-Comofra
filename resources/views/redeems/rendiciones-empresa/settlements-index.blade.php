@@ -72,7 +72,7 @@
                 <span class="text-muted">a</span>
                 {{ $s->period_to?->format('d/m/Y') ?? '—' }}
               </td>
-              <td class="text-end fw-semibold">{{ number_format((int)$s->total_points, 0, ',', '.') }}</td>
+              <td class="text-end fw-semibold">{{ number_format((float)$s->total_points, 2, ',', '.') }}</td>
               <td>
                 @if($s->status === 'invoiced')
                   <span class="badge text-bg-primary">Facturada</span>

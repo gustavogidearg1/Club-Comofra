@@ -78,4 +78,23 @@ Estado: {$estado}";
     </div>
   </div>
 </div>
+
+<audio id="clubSuccessSound" preload="auto">
+  <source src="{{ asset('audio/club-comofra-success.wav') }}" type="audio/wav">
+</audio>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sound = document.getElementById('clubSuccessSound');
+
+    if (!sound) return;
+
+    sound.volume = 0.75;
+
+    sound.play().catch(function () {
+        console.log('El navegador bloqueó la reproducción automática del sonido.');
+    });
+});
+</script>
+
 @endsection

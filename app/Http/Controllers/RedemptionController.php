@@ -207,7 +207,11 @@ private function saldoEmpleado(int $employeeUserId): float
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('empleado') && !$user->hasRole('admin_sitio')) {
+        if (
+    !$user->hasRole('empleado')
+    && !$user->hasRole('rrhh')
+    && !$user->hasRole('admin_sitio')
+) {
             return redirect()->route('dashboard')->with('error', 'Solo un empleado puede cargar un consumo manual.');
         }
 
@@ -231,7 +235,11 @@ private function saldoEmpleado(int $employeeUserId): float
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('empleado') && !$user->hasRole('admin_sitio')) {
+        if (
+    !$user->hasRole('empleado')
+    && !$user->hasRole('rrhh')
+    && !$user->hasRole('admin_sitio')
+) {
             return redirect()->route('dashboard')->with('error', 'Solo un empleado puede cargar un consumo manual.');
         }
 
@@ -256,7 +264,11 @@ private function saldoEmpleado(int $employeeUserId): float
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('empleado') && !$user->hasRole('admin_sitio')) {
+        if (
+    !$user->hasRole('empleado')
+    && !$user->hasRole('rrhh')
+    && !$user->hasRole('admin_sitio')
+) {
             return redirect()->route('dashboard')->with('error', 'Solo un empleado puede cargar un consumo manual.');
         }
 

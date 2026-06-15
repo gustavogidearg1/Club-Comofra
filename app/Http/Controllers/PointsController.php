@@ -30,7 +30,7 @@ class PointsController extends Controller
 
         $isSiteAdmin    = $u->hasRole('admin_sitio');
         $isCompanyAdmin = $u->hasRole('admin_empresa');
-        $isEmployee     = $u->hasRole('empleado');
+        $isEmployee = $u->hasRole('empleado') || $u->hasRole('rrhh');
 
         if (!$isSiteAdmin && !$isCompanyAdmin && !$isEmployee) {
             return redirect()->route('dashboard')->with('error', 'No tiene permisos para ver puntos.');
@@ -39,7 +39,11 @@ class PointsController extends Controller
         $hasVoided = Schema::hasColumn('point_movements', 'voided_at');
 
         // ===== EMPLEADO (vista propia) =====
-        if ($isEmployee && !$isSiteAdmin && !$isCompanyAdmin) {
+        if (
+    ($u->hasRole('empleado') || $u->hasRole('rrhh'))
+    && !$isSiteAdmin
+    && !$isCompanyAdmin
+) {
 
             $q = PointMovement::query()
                 ->where('employee_user_id', $u->id)

@@ -164,8 +164,8 @@ Route::middleware(['auth'])->group(function () {
     /**
      * ABM
      */
-    Route::middleware(['role:admin_sitio|admin_empresa'])
-        ->prefix('abm')
+Route::middleware(['role:admin_sitio|admin_empresa|rrhh'])
+    ->prefix('abm')
         ->name('abm.')
         ->group(function () {
 
@@ -207,5 +207,6 @@ Route::middleware(['auth'])->group(function () {
      */
     Route::resource('ofertas', OfertaController::class);
 });
+
 
 require __DIR__ . '/auth.php';

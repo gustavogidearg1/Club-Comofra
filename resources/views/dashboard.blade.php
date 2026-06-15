@@ -213,7 +213,7 @@
 
   @if($isEmployee || $isSiteAdmin)
   <div class="col-md-3">
-    <a href="{{ route('redeems.manual.index') }}" class="text-decoration-none">
+    <a href="{{ route('redeems.manual.index', ['scan' => 1]) }}" class="text-decoration-none">
       <div class="card mat-card h-100">
         <div class="card-body d-flex justify-content-between">
           <div>

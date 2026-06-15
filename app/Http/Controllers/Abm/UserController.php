@@ -19,7 +19,7 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware(['auth']);
-        $this->middleware(['role:admin_sitio|admin_empresa']);
+        $this->middleware(['role:admin_sitio|admin_empresa|rrhh']);
     }
 
     private function isSiteAdmin(): bool

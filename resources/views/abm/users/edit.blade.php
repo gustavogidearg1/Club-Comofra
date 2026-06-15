@@ -129,7 +129,8 @@
           $authUser       = auth()->user();
           $isSiteAdmin    = $authUser && $authUser->hasRole('admin_sitio');
           $isCompanyAdmin = $authUser && $authUser->hasRole('admin_empresa');
-          $canEditRoles   = $isSiteAdmin || $isCompanyAdmin;
+          $isRRHH = $authUser && $authUser->hasRole('rrhh');
+          $canEditRoles = $isSiteAdmin || $isCompanyAdmin || $isRRHH;
 
           $selectedRoles = old('roles', $currentRoleNames ?? $user->roles->pluck('name')->toArray());
 
@@ -142,14 +143,21 @@
             'admin_empresa'  => 'Administrador de compañía',
             'negocio'        => 'Negocio / empleado interno',
             'empleado'       => 'Empleado',
+            'rrhh' => 'Recursos Humanos',
           ];
 
           $roleList = $roles instanceof Collection ? $roles->all() : (array)$roles;
 
           $availableRoles = $roleList;
-          if ($isCompanyAdmin && !$isSiteAdmin) {
-            $availableRoles = array_values(array_filter($roleList, fn($rname) => $rname !== 'admin_sitio'));
-          }
+if (($isCompanyAdmin || $isRRHH) && !$isSiteAdmin) {
+    $availableRoles = array_values(
+        array_filter(
+            $roleList,
+            fn($rname) =>
+                !in_array($rname, ['admin_sitio', 'admin_empresa'])
+        )
+    );
+}
         @endphp
 
         @if($isSiteAdmin)

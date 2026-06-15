@@ -120,13 +120,15 @@
           </button>
 
           {{-- Scanner QR --}}
-          <button type="button"
-                  class="btn btn-outline-secondary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#qrScanModal"
-                  title="Escanear QR">
-            <i class="bi bi-qr-code-scan"></i>
-          </button>
+<button
+        id="btnOpenQrScanner"
+        type="button"
+        class="btn btn-outline-secondary"
+        data-bs-toggle="modal"
+        data-bs-target="#qrScanModal"
+        title="Escanear QR">
+    <i class="bi bi-qr-code-scan"></i>
+</button>
         </div>
 
         <div class="form-text text-muted">
@@ -246,8 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const businessSelect = document.getElementById('businessSelect');
   const btnContinue    = document.getElementById('btnContinue');
 
-  // armamos template de URL (sin depender del controlador)
   const urlTemplate = @json(route('redeems.manual.create', ['business' => '__ID__']));
+  const autoScan    = @json(request()->boolean('scan'));
 
   function updateContinue(){
     const id = businessSelect?.value || '';
@@ -269,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateContinue();
 
   // =========================
-  // MODAL BUSCAR NEGOCIO (sin AJAX)
+  // MODAL BUSCAR NEGOCIO
   // =========================
   const bizModalEl  = document.getElementById('modalBusinessSearch');
   const searchInput = document.getElementById('bizSearchInput');
@@ -289,7 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, (m) => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#039;'
     }[m]));
   }
 
@@ -334,11 +340,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     bodyEl.addEventListener('click', (ev) => {
       const btnSel = ev.target.closest('button[data-biz-id]');
-      if(!btnSel) return;
+      if (!btnSel) return;
 
       const id = btnSel.getAttribute('data-biz-id');
+
       businessSelect.value = id;
-      businessSelect.dispatchEvent(new Event('change', {bubbles:true}));
+      businessSelect.dispatchEvent(new Event('change', { bubbles:true }));
 
       const closeBtn = bizModalEl.querySelector('[data-bs-dismiss="modal"]');
       if (closeBtn) closeBtn.click();
@@ -360,16 +367,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ===========================
-  // Scanner QR (html5-qrcode)
+  // Scanner QR
   // ===========================
   const qrModalEl = document.getElementById('qrScanModal');
   const errEl     = document.getElementById('qrScanError');
-  const readerId  = "qrReader";
+  const readerId  = 'qrReader';
 
   if (!qrModalEl) return;
 
   let qr = null;
   let isRunning = false;
+  let hasScanned = false;
 
   function showErr(msg){
     if (!errEl) return;
@@ -382,17 +390,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = new URL(text, window.location.origin);
       const parts = url.pathname.split('/').filter(Boolean);
       const i = parts.findIndex(p => p === 'manual');
-      if (i >= 0 && parts[i+1]) return parts[i+1];
+
+      if (i >= 0 && parts[i + 1]) {
+        return parts[i + 1];
+      }
     } catch (e) {
       const parts = String(text).split('/').filter(Boolean);
       const i = parts.findIndex(p => p === 'manual');
-      if (i >= 0 && parts[i+1]) return parts[i+1];
+
+      if (i >= 0 && parts[i + 1]) {
+        return parts[i + 1];
+      }
     }
+
     return null;
   }
 
   async function startQr(){
     showErr('');
+    hasScanned = false;
 
     if (isRunning) return;
     isRunning = true;
@@ -404,14 +420,22 @@ document.addEventListener('DOMContentLoaded', () => {
       qr = new Html5Qrcode(readerId);
 
       await qr.start(
-        { facingMode: "environment" },
+        { facingMode: 'environment' },
         { fps: 10, qrbox: 250 },
         (decodedText) => {
+          if (hasScanned) return;
+
           const businessId = extractBusinessId(decodedText);
-          if (!businessId) return;
+
+          if (!businessId) {
+            showErr('El QR escaneado no corresponde a un negocio válido.');
+            return;
+          }
+
+          hasScanned = true;
 
           stopQr().finally(() => {
-            window.location.href = `/redeems/manual/${businessId}`;
+            window.location.href = urlTemplate.replace('__ID__', businessId);
           });
         },
         () => {}
@@ -423,10 +447,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function stopQr(){
-    if (!qr) { isRunning = false; return; }
+    if (!qr) {
+      isRunning = false;
+      return;
+    }
 
     try { await qr.stop(); } catch(e) {}
     try { await qr.clear(); } catch(e) {}
+
     qr = null;
     isRunning = false;
 
@@ -436,6 +464,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   qrModalEl.addEventListener('shown.bs.modal', startQr);
   qrModalEl.addEventListener('hidden.bs.modal', stopQr);
+
+  // ===========================
+  // Abrir scanner automáticamente
+  // cuando viene desde dashboard con ?scan=1
+  // ===========================
+if (autoScan) {
+    setTimeout(() => {
+        document.getElementById('btnOpenQrScanner')?.click();
+    }, 300);
+}
 });
 </script>
 @endpush

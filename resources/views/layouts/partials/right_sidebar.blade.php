@@ -10,13 +10,20 @@
   $isCompanyAdmin = $u?->hasRole('admin_empresa') ?? false;
   $isBusiness     = $u?->hasRole('negocio') ?? false;
   $isEmployee     = $u?->hasRole('empleado') ?? false;
+  $isRRHH = $u?->hasRole('rrhh') ?? false;
 
   // Prioridad: si es admin, ocultamos secciones duplicadas
   $showAdminSite    = $isSiteAdmin;
   $showAdminCompany = !$isSiteAdmin && $isCompanyAdmin;
 
-  $showBusiness = !$showAdminSite && !$showAdminCompany && $isBusiness;
-  $showEmployee = !$showAdminSite && !$showAdminCompany && $isEmployee;
+$showBusiness = !$showAdminSite && !$showAdminCompany && $isBusiness;
+
+$showEmployee =
+    !$showAdminSite &&
+    !$showAdminCompany &&
+    ($isEmployee || $isRRHH);
+
+$showRRHH = $isRRHH;
 
   // Rendiciones visibles para negocio + admins
   $canSeeSettlements = ($isBusiness || $isCompanyAdmin || $isSiteAdmin);
@@ -204,7 +211,7 @@
   @endif
 
   {{-- ====== ADMIN (EMPRESA o SITIO) ====== --}}
-  @if($showAdminCompany || $showAdminSite)
+  @if($showAdminCompany || $showAdminSite || $showRRHH)
     <div class="sidebar-section px-3 pt-3">
 
       {{-- Encabezado admin --}}
@@ -212,39 +219,40 @@
         {{ $showAdminSite ? 'Administrador del sitio' : 'Administrador de empresa' }}
       </div>
 
-      {{-- === Grupo: PUNTOS === --}}
-      <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between mt-2"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#{{ $collapseId('admin_points') }}"
-              aria-expanded="{{ $openAdminPoints ? 'true' : 'false' }}"
-              aria-controls="{{ $collapseId('admin_points') }}">
-        <span>Puntos</span>
-        <i class="bi bi-chevron-down small opacity-75"></i>
-      </button>
+      @if(!$showRRHH)
 
-      <div class="collapse {{ $openAdminPoints ? 'show' : '' }}" id="{{ $collapseId('admin_points') }}">
+    {{-- === Grupo: PUNTOS === --}}
+    <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between mt-2"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#{{ $collapseId('admin_points') }}"
+            aria-expanded="{{ $openAdminPoints ? 'true' : 'false' }}"
+            aria-controls="{{ $collapseId('admin_points') }}">
+      <span>Puntos</span>
+      <i class="bi bi-chevron-down small opacity-75"></i>
+    </button>
+
+    <div class="collapse {{ $openAdminPoints ? 'show' : '' }}" id="{{ $collapseId('admin_points') }}">
         <a class="sidebar-link {{ $starts('points.') && !$starts('points.import.') ? 'active' : '' }}"
-           href="{{ route('points.index') }}"
-           @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Gestión de puntos" @endif>
-          <i class="bi bi-trophy"></i>
-          <span class="link-text">Gestión de puntos</span>
+           href="{{ route('points.index') }}">
+            <i class="bi bi-trophy"></i>
+            <span class="link-text">Gestión de puntos</span>
         </a>
 
         <a class="sidebar-link {{ ($r === 'points.resumen' || $r === 'points.summary') ? 'active' : '' }}"
-           href="{{ route('points.resumen') }}"
-           @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Resumen" @endif>
-          <i class="bi bi-bar-chart"></i>
-          <span class="link-text">Resumen</span>
+           href="{{ route('points.resumen') }}">
+            <i class="bi bi-bar-chart"></i>
+            <span class="link-text">Resumen</span>
         </a>
 
         <a class="sidebar-link {{ $starts('points.import.') ? 'active' : '' }}"
-           href="{{ route('points.import.create') }}"
-           @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Importación" @endif>
-          <i class="bi bi-upload"></i>
-          <span class="link-text">Importación</span>
+           href="{{ route('points.import.create') }}">
+            <i class="bi bi-upload"></i>
+            <span class="link-text">Importación</span>
         </a>
-      </div>
+    </div>
+
+@endif
 
       {{-- === Grupo: Configuración === --}}
       <button class="sidebar-section-title w-100 d-flex align-items-center justify-content-between mt-3"

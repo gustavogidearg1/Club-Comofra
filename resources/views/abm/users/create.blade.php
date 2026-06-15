@@ -133,6 +133,7 @@
         $authUser       = auth()->user();
         $isSiteAdmin    = $authUser && $authUser->hasRole('admin_sitio');
         $isCompanyAdmin = $authUser && $authUser->hasRole('admin_empresa');
+        $isRRHH = $authUser && $authUser->hasRole('rrhh');
       @endphp
 
       {{-- Empresa: solo admin_sitio la cambia --}}
@@ -207,35 +208,36 @@
 ========================== --}}
 @php
     // Quien puede ver/editar roles
-    $canEditRoles = $isSiteAdmin || $isCompanyAdmin;
+    $canEditRoles = $isSiteAdmin || $isCompanyAdmin || $isRRHH;
 
     // $roles debe venir como array de strings (nombres)
     $roleList = $roles instanceof \Illuminate\Support\Collection ? $roles->all() : (array)$roles;
 
-    $selectedRoles = old('roles', []);
+$selectedRoles = old('roles', []);
 
-    // VALOR POR DEFECTO: 'empleado' para admin_empresa
-    if (!$isSiteAdmin && $isCompanyAdmin && empty($selectedRoles)) {
-        $selectedRoles = ['empleado']; // Rol por defecto
-    }
-    // VALOR POR DEFECTO GENERAL: Si no hay selección y es admin_sitio
-    elseif ($isSiteAdmin && empty($selectedRoles)) {
-        // Puedes elegir qué rol por defecto para admin_sitio
-        $selectedRoles = ['empleado']; // o el que prefieras
-    }
+if (empty($selectedRoles)) {
+    $selectedRoles = ['empleado'];
+}
 
     $roleLabels = [
         'admin_sitio'    => 'Administrador del sitio',
         'admin_empresa'  => 'Administrador de compañía',
         'negocio'        => 'Comercio / Negocio',
         'empleado'       => 'Empleado',
+        'rrhh'           => 'Recursos Humanos',
     ];
 
     $availableRoles = $roleList;
 
-    if ($isCompanyAdmin && !$isSiteAdmin) {
-        $availableRoles = array_values(array_filter($roleList, fn($rname) => $rname !== 'admin_sitio'));
-    }
+if (($isCompanyAdmin || $isRRHH) && !$isSiteAdmin) {
+    $availableRoles = array_values(
+        array_filter(
+            $roleList,
+            fn($rname) =>
+                !in_array($rname, ['admin_sitio', 'admin_empresa'])
+        )
+    );
+}
 @endphp
 
       <div class="col-12">

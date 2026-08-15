@@ -194,7 +194,7 @@
         @else
           <div class="company-logo-fallback">
             <img
-              src="{{ asset('logos/ImgLogoCircular-SF.png') }}"
+              src="{{ asset('logos/ImgLogoCircular-SF-r.png') }}"
               alt="Logo {{ config('app.name') }}"
               width="36"
               height="36"

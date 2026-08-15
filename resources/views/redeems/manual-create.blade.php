@@ -19,6 +19,25 @@
   font-size: 0.9rem;
 }
 
+.points-input-large {
+    font-size: 2rem;
+    font-weight: 700;
+    min-height: 62px;
+    padding: .7rem 1rem;
+
+    background: #dff7df;   /* Verde pastel */
+    border: 2px solid #28a745;
+    color: #155724;
+    text-align: right;
+
+    transition: .2s;
+}
+
+.points-input-large:focus {
+    background: #c8f2c8;
+    border-color: #FF9900;
+    box-shadow: 0 0 0 .25rem rgba(25,135,84,.20);
+}
 </style>
 
 <div class="container py-3">
@@ -70,7 +89,7 @@
        min="0.01"
        step="0.01"
        name="points"
-       class="form-control @error('points') is-invalid @enderror"
+       class="form-control points-input-large @error('points') is-invalid @enderror"
        value="{{ old('points') }}"
        required>
           @error('points') <div class="invalid-feedback">{{ $message }}</div> @enderror

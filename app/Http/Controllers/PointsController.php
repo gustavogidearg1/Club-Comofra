@@ -121,7 +121,7 @@ class PointsController extends Controller
             ? Company::orderBy('name')->get(['id', 'name'])
             : collect();
 
-        $types = ['earn', 'redeem', 'adjust', 'expire'];
+        $types = ['earn', 'redeem', 'adjust'];
 
         $batches = PointImportBatch::query()
             ->when(!$isSiteAdmin, fn($qq) => $qq->where('company_id', $u->company_id))
@@ -258,12 +258,11 @@ class PointsController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'company_id']);
 
-        $types = [
-            'earn'   => 'Acreditación',
-            'redeem' => 'Canje / Consumo',
-            'adjust' => 'Ajuste',
-            'expire' => 'Vencimiento',
-        ];
+$types = [
+    'earn'   => 'Acreditación',
+    'redeem' => 'Canje / Consumo',
+    'adjust' => 'Ajuste (+ / -)',
+];
 
         return view('points.crear', compact('employees', 'companies', 'companyId', 'isSiteAdmin', 'types', 'references'));
     }
@@ -274,6 +273,11 @@ class PointsController extends Controller
     public function store(Request $r)
     {
         $u = $r->user();
+
+
+
+
+
         abort_unless($u->hasRole('admin_sitio') || $u->hasRole('admin_empresa'), 403);
 
         $isSiteAdmin = $u->hasRole('admin_sitio');
@@ -282,8 +286,8 @@ class PointsController extends Controller
         $data = $r->validate([
             'company_id'        => ['nullable', 'integer', 'exists:companies,id'],
             'employee_user_id'  => ['required', 'integer', 'exists:users,id'],
-            'type'              => ['required', 'in:earn,redeem,adjust,expire'],
-            'points'            => ['required', 'numeric', 'min:0.01', 'max:1000000'],
+            'type'              => ['required', 'in:earn,redeem,adjust'],
+            'points'            => ['required', 'numeric', 'between:-1000000,1000000'],
             'occurred_at'       => ['nullable', 'date'],
             'reference_id'      => ['required', 'integer', 'exists:point_references,id'],
             'note'              => ['nullable', 'string', 'max:500'],
@@ -314,9 +318,27 @@ class PointsController extends Controller
             return back()->withErrors(['reference_id' => 'Referencia inválida.'])->withInput();
         }
 
-        $pts = round((float) $data['points'], 2);
-        if (in_array($data['type'], ['redeem', 'expire'], true)) $pts = -abs($pts);
-        else $pts = abs($pts);
+$pts = round((float) $data['points'], 2);
+
+switch ($data['type']) {
+
+    case 'earn':
+        $pts = abs($pts);
+        break;
+
+    case 'redeem':
+        $pts = -abs($pts);
+        break;
+
+    case 'adjust':
+        // Respeta el signo ingresado (+ o -)
+        break;
+
+    case 'expire':
+        // Solo por compatibilidad con procesos automáticos
+        $pts = -abs($pts);
+        break;
+}
 
         $movement = null;
 
@@ -399,12 +421,11 @@ try {
                 ->value('id');
         }
 
-        $types = [
-            'earn'   => 'Acreditación',
-            'redeem' => 'Canje / Consumo',
-            'adjust' => 'Ajuste',
-            'expire' => 'Vencimiento',
-        ];
+$types = [
+    'earn'   => 'Acreditación',
+    'redeem' => 'Canje / Consumo',
+    'adjust' => 'Ajuste (+ / -)',
+];
 
         return view('points.edit', compact('movement', 'types', 'references', 'currentRefId', 'isSiteAdmin'));
     }
@@ -427,8 +448,8 @@ try {
         }
 
         $data = $r->validate([
-            'type'         => ['required', 'in:earn,redeem,adjust,expire'],
-            'points'       => ['required', 'numeric', 'min:0.01', 'max:1000000'],
+            'type'         => ['required', 'in:earn,redeem,adjust'],
+            'points'       => ['required', 'numeric', 'between:-1000000,1000000'],
             'occurred_at'  => ['nullable', 'date'],
             'reference_id' => ['required', 'integer', 'exists:point_references,id'],
             'note'         => ['nullable', 'string', 'max:500'],
@@ -456,9 +477,21 @@ try {
         }
 
         // puntos firmados
-        $pts = round((float) $data['points'], 2);
-        if (in_array($data['type'], ['redeem', 'expire'], true)) $pts = -abs($pts);
-        else $pts = abs($pts);
+$pts = round((float) $data['points'], 2);
+
+switch ($data['type']) {
+    case 'earn':
+        $pts = abs($pts);
+        break;
+
+    case 'redeem':
+        $pts = -abs($pts);
+        break;
+
+    case 'adjust':
+        // Respeta el signo ingresado (+ o -)
+        break;
+}
 
         DB::transaction(function () use ($movement, $data, $pts, $occurredAt, $refText, $u) {
             $movement->type        = $data['type'];

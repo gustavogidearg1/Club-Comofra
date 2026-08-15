@@ -123,12 +123,14 @@
       {{-- PUNTOS --}}
       <div class="col-12 col-md-3">
         <label class="form-label">Puntos</label>
-        <input type="number"
-               min="1"
-               name="points"
-               class="form-control @error('points') is-invalid @enderror"
-               value="{{ old('points', 10) }}"
-               required>
+<input
+    type="number"
+    step="0.01"
+    id="points"
+    name="points"
+    class="form-control @error('points') is-invalid @enderror"
+    value="{{ old('points', 10) }}"
+    required>
 
         @error('points') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>

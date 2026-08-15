@@ -263,7 +263,7 @@ class PointImportController extends Controller
         $employeeMail = $row['employee_email'] ?? ($row['email'] ?? null);
 
         // Default type = adjust (para plantilla en español sin "type")
-        $type = strtolower(trim((string)($row['type'] ?? 'adjust')));
+        $type = strtolower(trim((string)($row['type'] ?? 'earn')));
         $points = (int)($row['points'] ?? 0);
 
         if (!$employeeId && !$employeeCuil && !$employeeMail) {

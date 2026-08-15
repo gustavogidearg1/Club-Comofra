@@ -65,7 +65,7 @@
     </div>
 
 <form method="POST" action="{{ route('points.update', $movement) }}" class="row g-3" id="pointsEditForm">
-...
+
       @csrf
       @method('PUT')
 
@@ -81,13 +81,17 @@
 
       <div class="col-12 col-md-3">
         <label class="form-label">Puntos</label>
-        <input type="number"
-               min="1"
-               name="points"
-               class="form-control @error('points') is-invalid @enderror"
-               value="{{ old('points', abs((int)$movement->points)) }}"
-               required>
-        <div class="form-text">Ingresá siempre positivo. El sistema aplica el signo según el tipo.</div>
+<input
+    type="number"
+    step="0.01"
+    id="points"
+    name="points"
+    class="form-control @error('points') is-invalid @enderror"
+    value="{{ old('points', $movement->points) }}"
+    required>
+        <div class="form-text">
+  En Ajuste podés ingresar valores positivos o negativos. En Acreditación y Canje el sistema aplica el signo automáticamente.
+</div>
         @error('points') <div class="invalid-feedback">{{ $message }}</div> @enderror
       </div>
 
@@ -124,7 +128,7 @@
       </div>
 
       <div class="col-12 d-flex gap-2">
-        ...
+
 <button type="submit" class="btn btn-primary btn-mat" id="btnSubmitEdit">
           <i class="bi bi-save"></i> Guardar cambios
         </button>
@@ -163,58 +167,109 @@
 @push('scripts')
 <script>
 (function(){
-  const form = document.getElementById('pointsEditForm');
-  const btn  = document.getElementById('btnSubmitEdit');
-  const modalEl = document.getElementById('modalSubmittingEdit');
-  if(!form || !btn || !modalEl) return;
 
-  let submitting = false;
+    // =========================
+    // ELEMENTOS
+    // =========================
+    const form       = document.getElementById('pointsEditForm');
+    const btn        = document.getElementById('btnSubmitEdit');
+    const modalEl    = document.getElementById('modalSubmittingEdit');
 
-  form.addEventListener('submit', function(ev){
-    if(submitting){
-      ev.preventDefault();
-      return;
+    const typeSelect = document.querySelector('select[name="type"]');
+    const pointsInput = document.getElementById('points');
+
+    if(!form || !btn || !modalEl) return;
+
+    // =========================
+    // AJUSTAR COMPORTAMIENTO DEL CAMPO PUNTOS
+    // =========================
+    function updatePointsRules(){
+
+        if(!typeSelect || !pointsInput) return;
+
+        switch(typeSelect.value){
+
+            case 'adjust':
+
+                // Permite positivos y negativos
+                pointsInput.removeAttribute('min');
+                pointsInput.placeholder = 'Puede ingresar valores positivos o negativos';
+                break;
+
+            case 'earn':
+
+                pointsInput.min = "0.01";
+                pointsInput.placeholder = 'Ingrese puntos positivos';
+
+                if(parseFloat(pointsInput.value) < 0){
+                    pointsInput.value = Math.abs(pointsInput.value);
+                }
+
+                break;
+
+            case 'redeem':
+
+                pointsInput.min = "0.01";
+                pointsInput.placeholder = 'Ingrese puntos positivos';
+
+                if(parseFloat(pointsInput.value) < 0){
+                    pointsInput.value = Math.abs(pointsInput.value);
+                }
+
+                break;
+        }
     }
-    submitting = true;
 
-    btn.disabled = true;
-    btn.classList.add('disabled');
+    typeSelect.addEventListener('change', updatePointsRules);
 
-    // Mostrar modal (sin depender de bootstrap global)
-    const tmp = document.createElement('button');
-    tmp.type = 'button';
-    tmp.setAttribute('data-bs-toggle','modal');
-    tmp.setAttribute('data-bs-target','#modalSubmittingEdit');
-    tmp.style.display = 'none';
-    document.body.appendChild(tmp);
-    tmp.click();
-    tmp.remove();
-  });
+    // Ejecutar al abrir la pantalla
+    updatePointsRules();
 
-  window.addEventListener('pageshow', function(){
-    submitting = false;
-    btn.disabled = false;
-    btn.classList.remove('disabled');
-  });
+
+    // =========================
+    // EVITAR DOBLE ENVÍO
+    // =========================
+    let submitting = false;
+
+    form.addEventListener('submit', function(ev){
+
+        if(submitting){
+            ev.preventDefault();
+            return;
+        }
+
+        submitting = true;
+
+        btn.disabled = true;
+        btn.classList.add('disabled');
+
+        // Mostrar modal sin depender de bootstrap global
+        const tmp = document.createElement('button');
+        tmp.type = 'button';
+        tmp.setAttribute('data-bs-toggle','modal');
+        tmp.setAttribute('data-bs-target','#modalSubmittingEdit');
+        tmp.style.display = 'none';
+
+        document.body.appendChild(tmp);
+        tmp.click();
+        tmp.remove();
+    });
+
+
+    // =========================
+    // SI EL USUARIO VUELVE ATRÁS
+    // =========================
+    window.addEventListener('pageshow', function(){
+
+        submitting = false;
+
+        btn.disabled = false;
+        btn.classList.remove('disabled');
+
+    });
+
 })();
 </script>
 @endpush
-
-<div class="modal fade" id="modalSubmittingEdit" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-body py-4">
-        <div class="d-flex align-items-center gap-3">
-          <div class="spinner-border" role="status" aria-hidden="true"></div>
-          <div>
-            <div class="fw-semibold">Guardando cambios…</div>
-            <div class="text-muted small">No cierres esta pantalla. Estamos actualizando el movimiento y enviando el correo.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 @endsection

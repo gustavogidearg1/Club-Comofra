@@ -186,7 +186,7 @@ body { margin: 0; }
 
     {{-- HEADER --}}
     <div class="login-header">
-      <img src="{{ asset('logos/ImgLogoCircular-SF.png') }}"
+      <img src="{{ asset('logos/ImgLogoCircular-SF-r.png') }}"
            alt="Logo {{ $appName }}"
            class="login-logo">
      <div class="login-title-main">{{ strtoupper($appName) }}</div>

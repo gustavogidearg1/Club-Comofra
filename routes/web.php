@@ -131,6 +131,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('store');
 
+        Route::get('/{movement}/comprobante', [PointsController::class, 'receipt'])
+            ->middleware('role:admin_sitio|admin_empresa')
+            ->name('receipt');
+
         Route::get('/export', [PointsController::class, 'export'])
             ->middleware('role:admin_sitio|admin_empresa')
             ->name('export');

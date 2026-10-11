@@ -379,7 +379,29 @@ try {
 
 }
 
-        return redirect()->route('points.index')->with('ok', 'Movimiento guardado.');
+        return redirect()->route('points.receipt', $movement)
+            ->with('ok', 'Movimiento guardado.');
+    }
+
+    /**
+     * COMPROBANTE DE MOVIMIENTO MANUAL (admins)
+     */
+    public function receipt(Request $r, PointMovement $movement)
+    {
+        $u = $r->user();
+        abort_unless($u->hasRole('admin_sitio') || $u->hasRole('admin_empresa'), 403);
+
+        if (!$u->hasRole('admin_sitio')) {
+            abort_unless((int) $movement->company_id === (int) ($u->company_id ?? 0), 403);
+        }
+
+        $movement->load([
+            'employee:id,name,email,cuil,company_id',
+            'company:id,name',
+            'createdBy:id,name',
+        ]);
+
+        return view('points.receipt', compact('movement'));
     }
 
     /**

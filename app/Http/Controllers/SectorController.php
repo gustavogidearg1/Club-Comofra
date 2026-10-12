@@ -54,7 +54,7 @@ class SectorController extends Controller
         Sector::create($data);
 
         return redirect()
-            ->route('abm.sectors.index')
+            ->route('sectors.index')
             ->with('success', 'Sector creado correctamente.');
     }
 
@@ -88,7 +88,7 @@ class SectorController extends Controller
         $sector->update($data);
 
         return redirect()
-            ->route('abm.sectors.index')
+            ->route('sectors.index')
             ->with('success', 'Sector actualizado correctamente.');
     }
 
@@ -103,7 +103,7 @@ class SectorController extends Controller
         $sector->update(['active' => false]);
 
         return redirect()
-            ->route('abm.sectors.index')
+            ->route('sectors.index')
             ->with('success', 'Sector desactivado correctamente.');
     }
 }

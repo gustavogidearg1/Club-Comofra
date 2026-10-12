@@ -129,12 +129,14 @@
         </h3>
 
         <div class="ms-auto no-print">
-            <button type="button"
-                    class="btn btn-primary btn-mat"
-                    onclick="imprimirQR()"
-                <i class="bi bi-printer me-1"></i>
-                Imprimir cartel A4
-            </button>
+<button
+    type="button"
+    class="btn btn-primary btn-mat"
+    onclick="imprimirQR()"
+>
+    <i class="bi bi-printer me-1"></i>
+    Imprimir cartel A4
+</button>
         </div>
     </div>
 
@@ -276,6 +278,31 @@
               @endforelse
             </div>
           </div>
+
+          <div class="col-md-8">
+    <div class="text-muted small">
+        Sectores asignados
+    </div>
+
+    <div class="mt-1">
+        @forelse($user->sectors as $sector)
+            <span class="badge text-bg-primary me-1 mb-1">
+                <i class="bi bi-diagram-3 me-1"></i>
+                {{ $sector->name }}
+
+                @if($sector->calidad)
+                    <span class="ms-1">
+                        · Calidad
+                    </span>
+                @endif
+            </span>
+        @empty
+            <span class="text-muted">
+                Sin sectores asignados
+            </span>
+        @endforelse
+    </div>
+</div>
 
         </div>
       </div>

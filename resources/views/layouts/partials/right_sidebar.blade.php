@@ -284,11 +284,11 @@ $showRRHH = $isRRHH;
         </a>
 
         @role('admin_sitio|admin_empresa')
-    <a href="{{ route('abm.sectors.index') }}"
-       class="sidebar-link {{ request()->routeIs('sectors.*') ? 'active' : '' }}">
-        <i class="bi bi-diagram-3"></i>
-        <span>Sectores</span>
-    </a>
+<a href="{{ route('sectors.index') }}"
+   class="sidebar-link {{ request()->routeIs('sectors.*') ? 'active' : '' }}">
+    <i class="bi bi-diagram-3"></i>
+    <span>Sectores</span>
+</a>
 @endrole
 
         <a class="sidebar-link {{ $starts('abm.point-references.') ? 'active' : '' }}"

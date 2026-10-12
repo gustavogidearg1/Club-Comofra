@@ -23,7 +23,9 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware(['auth']);
-        $this->middleware(['role:admin_sitio|admin_empresa|rrhh']);
+        $this->middleware([
+            'role:admin_sitio|admin_empresa|rrhh',
+        ]);
     }
 
     private function isSiteAdmin(): bool
@@ -40,7 +42,8 @@ class UserController extends Controller
     {
         if ($this->isCompanyAdmin() && !$this->isSiteAdmin()) {
             abort_unless(
-                (int) $target->company_id === (int) auth()->user()->company_id,
+                (int) $target->company_id ===
+                (int) auth()->user()->company_id,
                 403,
                 'No tiene permisos para acceder a usuarios de otra empresa.'
             );
@@ -83,6 +86,27 @@ class UserController extends Controller
         ]);
     }
 
+    private function sectorRules(Request $request): array
+    {
+        return [
+            'sectors' => [
+                'nullable',
+                'array',
+            ],
+
+            'sectors.*' => [
+                'integer',
+                Rule::exists('sectors', 'id')
+                    ->where(function ($query) use ($request) {
+                        $query->where(
+                            'company_id',
+                            $request->input('company_id')
+                        );
+                    }),
+            ],
+        ];
+    }
+
     public function index(Request $request)
     {
         $q = $request->string('q')->toString();
@@ -112,7 +136,11 @@ class UserController extends Controller
             ->get();
 
         $users = User::query()
-            ->with(['roles', 'company', 'sectors'])
+            ->with([
+                'roles',
+                'company',
+                'sectors',
+            ])
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($subQuery) use ($q) {
                     $subQuery
@@ -123,7 +151,10 @@ class UserController extends Controller
             })
             ->when(
                 $companyId,
-                fn ($query) => $query->where('company_id', $companyId)
+                fn ($query) => $query->where(
+                    'company_id',
+                    $companyId
+                )
             )
             ->when($roleName, function ($query) use ($roleName) {
                 $query->whereHas(
@@ -182,7 +213,17 @@ class UserController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        $sectors = $this->getAvailableSectors();
+        $sectors = Sector::query()
+            ->where('active', true)
+            ->when(
+                $this->isCompanyAdmin() && !$this->isSiteAdmin(),
+                fn ($query) => $query->where(
+                    'company_id',
+                    auth()->user()->company_id
+                )
+            )
+            ->orderBy('name')
+            ->get();
 
         return view('abm.users.create', compact(
             'roles',
@@ -198,7 +239,7 @@ class UserController extends Controller
     {
         $this->normalizeAndSecureRequest($request);
 
-        $data = $request->validate([
+        $rules = [
             'name' => [
                 'required',
                 'string',
@@ -291,21 +332,11 @@ class UserController extends Controller
                 'string',
                 'exists:roles,name',
             ],
+        ];
 
-            'sectors' => [
-                'nullable',
-                'array',
-            ],
-
-            'sectors.*' => [
-                'integer',
-                Rule::exists('sectors', 'id')
-                    ->where(fn ($query) => $query->where(
-                        'company_id',
-                        $request->input('company_id')
-                    )),
-            ],
-        ]);
+        $data = $request->validate(
+            array_merge($rules, $this->sectorRules($request))
+        );
 
         if ($request->hasFile('imagen')) {
             $data['imagen'] = $request
@@ -332,16 +363,25 @@ class UserController extends Controller
         ]);
 
         $user->syncRoles($data['roles'] ?? []);
-        $user->sectors()->sync($data['sectors'] ?? []);
 
-        $user->load(['company', 'sectors']);
+        $user->sectors()->sync(
+            $data['sectors'] ?? []
+        );
+
+        $user->load([
+            'company',
+            'sectors',
+        ]);
 
         Mail::to($user->email)
             ->send(new UserRegisteredMail($user));
 
         return redirect()
             ->route('abm.users.index')
-            ->with('success', 'Usuario creado correctamente.');
+            ->with(
+                'success',
+                'Usuario creado correctamente.'
+            );
     }
 
     public function show(User $user)
@@ -395,7 +435,9 @@ class UserController extends Controller
             ->pluck('name')
             ->all();
 
-        $sectors = $this->getAvailableSectors($user->company_id);
+        $sectors = $this->getAvailableSectors(
+            (int) $user->company_id
+        );
 
         $currentSectorIds = $user
             ->sectors()
@@ -421,7 +463,7 @@ class UserController extends Controller
 
         $this->normalizeAndSecureRequest($request);
 
-        $data = $request->validate([
+        $rules = [
             'name' => [
                 'required',
                 'string',
@@ -516,21 +558,11 @@ class UserController extends Controller
                 'string',
                 'exists:roles,name',
             ],
+        ];
 
-            'sectors' => [
-                'nullable',
-                'array',
-            ],
-
-            'sectors.*' => [
-                'integer',
-                Rule::exists('sectors', 'id')
-                    ->where(fn ($query) => $query->where(
-                        'company_id',
-                        $request->input('company_id')
-                    )),
-            ],
-        ]);
+        $data = $request->validate(
+            array_merge($rules, $this->sectorRules($request))
+        );
 
         $updateData = [
             'name' => $data['name'],
@@ -550,7 +582,9 @@ class UserController extends Controller
 
         if ($request->hasFile('imagen')) {
             if ($user->imagen) {
-                Storage::disk('public')->delete($user->imagen);
+                Storage::disk('public')->delete(
+                    $user->imagen
+                );
             }
 
             $updateData['imagen'] = $request
@@ -567,11 +601,17 @@ class UserController extends Controller
         $user->update($updateData);
 
         $user->syncRoles($data['roles'] ?? []);
-        $user->sectors()->sync($data['sectors'] ?? []);
+
+        $user->sectors()->sync(
+            $data['sectors'] ?? []
+        );
 
         return redirect()
             ->route('abm.users.show', $user)
-            ->with('success', 'Usuario actualizado correctamente.');
+            ->with(
+                'success',
+                'Usuario actualizado correctamente.'
+            );
     }
 
     public function export(Request $request): StreamedResponse
@@ -586,13 +626,29 @@ class UserController extends Controller
         }
 
         $users = User::query()
-            ->with(['roles', 'company', 'sectors'])
+            ->with([
+                'roles',
+                'company',
+                'sectors',
+            ])
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($subQuery) use ($q) {
                     $subQuery
-                        ->where('name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%")
-                        ->orWhere('cuil', 'like', "%{$q}%");
+                        ->where(
+                            'name',
+                            'like',
+                            "%{$q}%"
+                        )
+                        ->orWhere(
+                            'email',
+                            'like',
+                            "%{$q}%"
+                        )
+                        ->orWhere(
+                            'cuil',
+                            'like',
+                            "%{$q}%"
+                        );
                 });
             })
             ->when(
@@ -613,50 +669,62 @@ class UserController extends Controller
             })
             ->when(
                 $activo !== '',
-                fn ($query) => $query->where('activo', $activo)
+                fn ($query) => $query->where(
+                    'activo',
+                    $activo
+                )
             )
             ->orderBy('name');
 
-        $filename = 'users_export_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'users_export_' .
+            now()->format('Ymd_His') .
+            '.csv';
 
-        return response()->streamDownload(function () use ($users) {
-            $out = fopen('php://output', 'w');
+        return response()->streamDownload(
+            function () use ($users) {
+                $out = fopen('php://output', 'w');
 
-            fwrite($out, "\xEF\xBB\xBF");
+                fwrite($out, "\xEF\xBB\xBF");
 
-            fputcsv($out, [
-                'Nombre',
-                'Email',
-                'Telefono',
-                'Empresa',
-                'CUIL',
-                'Roles',
-                'Sectores',
-                'Activo',
-            ], ';');
+                fputcsv($out, [
+                    'Nombre',
+                    'Email',
+                    'Telefono',
+                    'Empresa',
+                    'CUIL',
+                    'Roles',
+                    'Sectores',
+                    'Activo',
+                ], ';');
 
-            $users->chunk(500, function ($rows) use ($out) {
-                foreach ($rows as $user) {
-                    fputcsv($out, [
-                        $user->name,
-                        $user->email,
-                        $user->telefono,
-                        $user->company?->name,
-                        $user->cuil,
-                        $user->roles
-                            ->pluck('name')
-                            ->join(', '),
-                        $user->sectors
-                            ->pluck('name')
-                            ->join(', '),
-                        $user->activo ? 'Si' : 'No',
-                    ], ';');
-                }
-            });
+                $users->chunk(
+                    500,
+                    function ($rows) use ($out) {
+                        foreach ($rows as $user) {
+                            fputcsv($out, [
+                                $user->name,
+                                $user->email,
+                                $user->telefono,
+                                $user->company?->name,
+                                $user->cuil,
+                                $user->roles
+                                    ->pluck('name')
+                                    ->join(', '),
+                                $user->sectors
+                                    ->pluck('name')
+                                    ->join(', '),
+                                $user->activo ? 'Si' : 'No',
+                            ], ';');
+                        }
+                    }
+                );
 
-            fclose($out);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+                fclose($out);
+            },
+            $filename,
+            [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]
+        );
     }
 }

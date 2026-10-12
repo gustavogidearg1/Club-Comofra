@@ -203,6 +203,60 @@
         <input name="password_confirmation" type="password" class="form-control" required>
       </div>
 
+      <div class="mt-4">
+    <h5 class="mb-3">
+        Sectores asignados
+    </h5>
+
+    <div class="row">
+        @forelse($sectors as $sector)
+            <div class="col-md-4 mb-2">
+                <div class="form-check">
+                    <input
+                        type="checkbox"
+                        name="sectors[]"
+                        value="{{ $sector->id }}"
+                        id="sector_{{ $sector->id }}"
+                        class="form-check-input"
+                        @checked(
+                            in_array(
+                                $sector->id,
+                                old(
+                                    'sectors',
+                                    $currentSectorIds ?? []
+                                )
+                            )
+                        )
+                    >
+
+                    <label
+                        for="sector_{{ $sector->id }}"
+                        class="form-check-label"
+                    >
+                        {{ $sector->name }}
+
+                        @if($sector->calidad)
+                            <span class="badge bg-success">
+                                Calidad
+                            </span>
+                        @endif
+                    </label>
+                </div>
+            </div>
+        @empty
+            <div class="text-muted">
+                No hay sectores activos disponibles.
+            </div>
+        @endforelse
+    </div>
+
+    @error('sectors')
+        <div class="text-danger small">
+            {{ $message }}
+        </div>
+    @enderror
+</div>
+
      {{-- =========================
      ROLES (checkbox como pediste)
 ========================== --}}

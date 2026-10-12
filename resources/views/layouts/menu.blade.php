@@ -93,6 +93,14 @@
             <i class="bi bi-people"></i><span>Usuarios</span>
           </a>
 
+          @role('admin_sitio|admin_empresa')
+    <a href="{{ route('abm.sectors.index') }}"
+       class="nav-link {{ request()->routeIs('sectors.*') ? 'active' : '' }}">
+        <i class="bi bi-diagram-3"></i>
+        <span>Sectores</span>
+    </a>
+@endrole
+
           <a class="pc-nav-link {{ request()->routeIs('points.*') ? 'active' : '' }}"
              href="{{ route('points.index') }}">
             <i class="bi bi-trophy"></i><span>Gestión de puntos</span>

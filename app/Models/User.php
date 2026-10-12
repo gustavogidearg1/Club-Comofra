@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -90,6 +91,11 @@ public function ofertas()
 }
 
 
-
+public function sectors(): BelongsToMany
+{
+    return $this->belongsToMany(Sector::class)
+        ->withPivot(['principal', 'active'])
+        ->withTimestamps();
+}
 
 }

@@ -19,6 +19,7 @@ use App\Http\Controllers\Abm\ProvinciaController;
 use App\Http\Controllers\Abm\LocalidadController;
 use App\Http\Controllers\Abm\UserController;
 use App\Http\Controllers\Abm\PointReferenceController;
+use App\Http\Controllers\SectorController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -211,6 +212,12 @@ Route::middleware(['role:admin_sitio|admin_empresa|rrhh'])
      */
     Route::resource('ofertas', OfertaController::class);
 });
+
+Route::middleware(['auth'])
+    ->group(function () {
+        Route::resource('sectors', SectorController::class)
+            ->except(['show']);
+    });
 
 
 require __DIR__ . '/auth.php';

@@ -283,6 +283,14 @@ $showRRHH = $isRRHH;
           <span class="link-text">Usuarios</span>
         </a>
 
+        @role('admin_sitio|admin_empresa')
+    <a href="{{ route('abm.sectors.index') }}"
+       class="sidebar-link {{ request()->routeIs('sectors.*') ? 'active' : '' }}">
+        <i class="bi bi-diagram-3"></i>
+        <span>Sectores</span>
+    </a>
+@endrole
+
         <a class="sidebar-link {{ $starts('abm.point-references.') ? 'active' : '' }}"
            href="{{ route('abm.point-references.index') }}"
            @if(!$isOffcanvas) data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Referencias de puntos" @endif>

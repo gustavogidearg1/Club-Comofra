@@ -374,6 +374,68 @@
 </div>
 @endif
 
+@if($isBusiness && $businessManualUrl)
+<div class="card mat-card mb-4">
+  <div class="mat-header">
+    <h3 class="mat-title mb-0">
+      <i class="bi bi-qr-code me-2"></i>Mi QR de cobro
+    </h3>
+  </div>
+
+  <div class="card-body text-center">
+
+    <div id="qrPrintable" class="qr-a4-preview mx-auto">
+
+<div class="d-flex align-items-center mb-3">
+    @if($activeCompany && !empty($activeCompany->logo))
+        <img src="{{ asset('storage/' . $activeCompany->logo) }}"
+             alt="Logo empresa"
+             style="height: 60px; width: auto; object-fit: contain;"
+             class="me-3">
+    @endif
+
+    <div>
+        <h4 class="mb-0">{{ $activeCompany->name ?? 'Dashboard' }}</h4>
+        <small class="text-muted">Panel principal</small>
+    </div>
+</div>
+
+      <h1 class="qr-business-name">{{ $u->name }}</h1>
+
+      <div class="qr-divider">
+        <span></span>
+        <i class="bi bi-stars"></i>
+        <span></span>
+      </div>
+
+      <p class="qr-subtitle">
+        Escaneá este QR para registrar consumos
+      </p>
+
+      <div class="qr-box">
+        <img
+          src="https://api.qrserver.com/v1/create-qr-code/?size=420x420&data={{ urlencode($businessManualUrl) }}"
+          alt="QR de cobro"
+          id="qrCobro"
+        >
+      </div>
+
+
+
+      <p class="qr-print-note">
+        Imprimí y exhibí este QR en tu local para que puedan escanearlo fácilmente.
+      </p>
+
+    </div>
+
+    <button onclick="imprimirQR()" class="btn btn-primary btn-mat mt-3">
+      <i class="bi bi-printer me-1"></i> Imprimir cartel A4
+    </button>
+
+  </div>
+</div>
+@endif
+
 
 
     {{-- NEGOCIOS TABLA --}}
